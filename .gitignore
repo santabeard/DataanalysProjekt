@@ -1,0 +1,8 @@
+ed_atlas/data/*.npz
+# PyMC traces and intermediate files used by convert_traces.py
+*.nc
+*.parquet
+
+# data/ is ignored by root .gitignore, but shipped posteriors should be tracked
+!data/*.npzed_atlas/data/*.npz
+*.npz
