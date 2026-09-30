@@ -1,0 +1,401 @@
+age,gender,chief_complaint,true_saturation,saturation_mcar,saturation_mar,saturation_mnar,mortality_30_days
+69,Female,Cough,96,96.0,96.0,96.0,0
+32,Female,Fever,95,,95.0,,0
+89,Male,Headache,94,94.0,94.0,94.0,1
+78,Female,Abdominal Pain,93,93.0,93.0,93.0,0
+38,Male,Fatigue,95,95.0,,95.0,0
+41,Female,Chest Pain,94,94.0,94.0,94.0,0
+20,Female,Chest Pain,96,96.0,96.0,96.0,0
+39,Male,Abdominal Pain,94,94.0,94.0,94.0,0
+70,Female,Abdominal Pain,93,93.0,,93.0,0
+19,Female,Fever,100,100.0,,100.0,0
+47,Male,Cough,94,94.0,94.0,94.0,0
+55,Male,Chest Pain,100,,100.0,100.0,1
+19,Male,Fatigue,98,98.0,98.0,,0
+81,Male,Headache,95,95.0,95.0,,0
+77,Male,Fatigue,93,93.0,93.0,93.0,0
+38,Female,Shortness of Breath,94,94.0,,,0
+50,Male,Shortness of Breath,91,91.0,91.0,,0
+75,Male,Abdominal Pain,95,95.0,95.0,95.0,0
+39,Female,Fever,100,100.0,100.0,100.0,0
+66,Male,Shortness of Breath,91,91.0,,,0
+76,Female,Chest Pain,97,,97.0,97.0,0
+59,Male,Fatigue,94,94.0,,94.0,0
+77,Male,Fatigue,94,94.0,94.0,94.0,0
+32,Female,Abdominal Pain,100,100.0,,100.0,0
+79,Female,Cough,93,93.0,93.0,,0
+79,Female,Cough,98,98.0,98.0,98.0,0
+64,Female,Headache,97,97.0,97.0,97.0,0
+79,Female,Abdominal Pain,93,93.0,93.0,93.0,0
+68,Male,Dizziness,96,96.0,96.0,96.0,0
+72,Male,Headache,97,97.0,97.0,97.0,0
+81,Female,Dizziness,96,96.0,96.0,96.0,0
+20,Female,Cough,94,,,94.0,0
+68,Female,Abdominal Pain,94,,94.0,94.0,0
+24,Male,Dizziness,97,,97.0,97.0,0
+38,Male,Abdominal Pain,96,96.0,96.0,96.0,0
+56,Female,Abdominal Pain,97,97.0,97.0,97.0,0
+35,Male,Cough,97,97.0,,97.0,0
+21,Female,Headache,95,95.0,,95.0,0
+77,Female,Headache,95,,95.0,95.0,0
+31,Male,Abdominal Pain,98,98.0,,98.0,0
+26,Female,Shortness of Breath,94,94.0,94.0,94.0,0
+70,Female,Fever,97,,97.0,97.0,0
+19,Male,Cough,99,99.0,99.0,99.0,0
+77,Female,Fever,95,95.0,,95.0,1
+88,Female,Fever,94,94.0,94.0,94.0,0
+61,Female,Headache,92,92.0,92.0,,0
+25,Male,Headache,98,98.0,98.0,98.0,0
+64,Female,Shortness of Breath,92,92.0,,,0
+52,Male,Fever,96,96.0,96.0,96.0,0
+53,Male,Fever,93,93.0,93.0,,0
+67,Female,Abdominal Pain,93,93.0,93.0,93.0,1
+21,Male,Headache,99,99.0,99.0,99.0,0
+19,Male,Fever,97,97.0,97.0,97.0,0
+23,Female,Fatigue,99,,99.0,99.0,0
+71,Female,Shortness of Breath,91,,91.0,,0
+21,Female,Dizziness,97,97.0,97.0,97.0,0
+71,Female,Fatigue,97,,97.0,97.0,0
+80,Male,Fatigue,93,93.0,,93.0,0
+35,Male,Dizziness,97,97.0,,97.0,0
+61,Male,Cough,94,,94.0,,0
+51,Female,Cough,95,95.0,95.0,,0
+79,Female,Shortness of Breath,90,90.0,90.0,,1
+31,Female,Fatigue,97,97.0,97.0,97.0,0
+65,Female,Fever,94,94.0,94.0,94.0,0
+32,Male,Headache,99,99.0,,99.0,0
+89,Female,Shortness of Breath,88,88.0,88.0,,1
+79,Male,Abdominal Pain,94,,94.0,94.0,0
+57,Female,Dizziness,95,95.0,95.0,,0
+70,Male,Fatigue,98,98.0,,98.0,0
+41,Female,Shortness of Breath,93,93.0,93.0,93.0,1
+43,Male,Chest Pain,98,98.0,98.0,98.0,0
+77,Male,Chest Pain,92,92.0,92.0,92.0,1
+58,Male,Cough,96,96.0,96.0,96.0,0
+46,Female,Dizziness,98,98.0,98.0,98.0,0
+32,Female,Headache,97,97.0,97.0,97.0,0
+62,Male,Fever,97,97.0,97.0,,0
+82,Male,Headache,93,93.0,93.0,93.0,1
+88,Female,Headache,97,97.0,97.0,97.0,0
+26,Male,Headache,100,100.0,,,0
+18,Female,Dizziness,97,97.0,,97.0,0
+25,Female,Headache,96,96.0,96.0,96.0,0
+80,Male,Abdominal Pain,97,97.0,97.0,97.0,0
+28,Male,Dizziness,100,100.0,100.0,100.0,0
+25,Female,Abdominal Pain,96,96.0,96.0,,0
+52,Male,Dizziness,95,95.0,95.0,95.0,0
+52,Male,Cough,95,,95.0,95.0,0
+50,Female,Shortness of Breath,89,89.0,89.0,,1
+22,Female,Chest Pain,95,95.0,,95.0,0
+58,Female,Headache,93,93.0,,93.0,0
+45,Female,Cough,95,,95.0,95.0,0
+24,Male,Shortness of Breath,93,93.0,,93.0,0
+89,Male,Chest Pain,94,94.0,94.0,94.0,0
+29,Female,Fatigue,100,100.0,,100.0,0
+51,Female,Fever,94,,94.0,94.0,0
+50,Male,Abdominal Pain,98,,98.0,98.0,0
+65,Female,Fatigue,95,95.0,95.0,95.0,0
+40,Male,Dizziness,96,96.0,96.0,96.0,0
+79,Female,Chest Pain,96,96.0,96.0,96.0,0
+54,Male,Fatigue,93,93.0,93.0,93.0,0
+61,Male,Fever,96,96.0,96.0,96.0,0
+52,Male,Cough,96,96.0,96.0,96.0,0
+82,Male,Chest Pain,95,95.0,95.0,95.0,0
+64,Male,Fatigue,96,96.0,96.0,96.0,0
+20,Female,Abdominal Pain,100,,,100.0,0
+18,Female,Abdominal Pain,96,96.0,96.0,96.0,0
+22,Female,Shortness of Breath,92,92.0,,92.0,0
+31,Female,Fatigue,96,96.0,,96.0,0
+44,Male,Headache,95,95.0,95.0,95.0,0
+26,Male,Fatigue,96,96.0,96.0,96.0,0
+32,Female,Cough,99,99.0,,99.0,0
+59,Male,Chest Pain,98,,98.0,98.0,0
+68,Female,Chest Pain,94,,94.0,94.0,0
+80,Male,Cough,93,93.0,93.0,93.0,1
+69,Female,Fatigue,96,96.0,96.0,96.0,0
+21,Male,Cough,96,96.0,96.0,96.0,0
+40,Female,Fever,98,,,,0
+32,Female,Dizziness,97,,,97.0,0
+60,Female,Cough,92,92.0,92.0,92.0,0
+46,Male,Abdominal Pain,99,,99.0,99.0,0
+53,Female,Cough,99,99.0,99.0,,0
+30,Female,Chest Pain,96,96.0,96.0,96.0,0
+49,Female,Abdominal Pain,95,95.0,95.0,95.0,0
+88,Female,Chest Pain,95,,95.0,95.0,1
+76,Female,Shortness of Breath,91,91.0,91.0,,1
+45,Male,Headache,97,,97.0,97.0,0
+83,Female,Chest Pain,98,98.0,98.0,98.0,0
+59,Female,Abdominal Pain,95,95.0,,95.0,0
+62,Female,Shortness of Breath,90,90.0,90.0,,1
+79,Male,Chest Pain,92,92.0,,92.0,1
+74,Male,Fever,93,93.0,,93.0,0
+23,Female,Cough,97,97.0,97.0,97.0,0
+45,Female,Headache,100,100.0,100.0,,0
+45,Male,Chest Pain,95,95.0,95.0,95.0,0
+61,Female,Shortness of Breath,92,92.0,92.0,92.0,0
+47,Male,Fever,96,96.0,96.0,96.0,0
+79,Male,Fatigue,97,97.0,97.0,,0
+79,Male,Shortness of Breath,96,96.0,,,0
+18,Male,Cough,96,96.0,96.0,96.0,0
+44,Female,Shortness of Breath,91,91.0,91.0,,0
+79,Male,Fever,97,,97.0,,1
+20,Female,Shortness of Breath,95,95.0,95.0,95.0,1
+87,Female,Fever,98,98.0,,98.0,0
+89,Female,Chest Pain,95,,95.0,95.0,1
+44,Female,Dizziness,95,95.0,95.0,95.0,0
+26,Male,Fever,98,98.0,98.0,98.0,0
+79,Female,Fever,97,97.0,97.0,97.0,0
+54,Female,Headache,97,,97.0,97.0,0
+68,Male,Fever,96,96.0,96.0,96.0,0
+61,Female,Fever,97,97.0,97.0,97.0,0
+41,Female,Fatigue,99,99.0,99.0,99.0,0
+76,Female,Dizziness,97,97.0,97.0,97.0,1
+49,Female,Chest Pain,97,97.0,97.0,97.0,0
+69,Female,Cough,95,95.0,95.0,95.0,0
+79,Male,Headache,95,95.0,95.0,95.0,0
+75,Female,Fatigue,97,97.0,97.0,97.0,1
+69,Female,Abdominal Pain,93,,93.0,93.0,0
+29,Male,Dizziness,98,98.0,,98.0,0
+56,Male,Chest Pain,95,95.0,95.0,95.0,0
+19,Male,Chest Pain,98,98.0,98.0,98.0,0
+20,Female,Abdominal Pain,100,100.0,100.0,100.0,0
+73,Female,Cough,95,95.0,95.0,95.0,0
+76,Male,Fever,95,95.0,95.0,95.0,0
+19,Female,Fatigue,95,,95.0,95.0,0
+19,Male,Shortness of Breath,95,95.0,95.0,95.0,0
+71,Female,Headache,96,,,96.0,0
+18,Female,Shortness of Breath,98,98.0,98.0,98.0,0
+36,Female,Abdominal Pain,96,96.0,96.0,,0
+19,Male,Chest Pain,98,98.0,,98.0,0
+70,Male,Cough,95,,95.0,95.0,0
+61,Male,Chest Pain,99,99.0,99.0,99.0,0
+49,Male,Headache,96,96.0,96.0,96.0,0
+87,Female,Chest Pain,95,95.0,95.0,95.0,1
+49,Female,Chest Pain,97,,97.0,97.0,0
+85,Female,Headache,95,95.0,95.0,95.0,0
+72,Female,Fatigue,94,94.0,94.0,94.0,0
+73,Female,Fatigue,95,95.0,95.0,95.0,0
+34,Female,Headache,99,99.0,99.0,99.0,0
+55,Female,Cough,94,94.0,94.0,94.0,0
+41,Female,Abdominal Pain,97,97.0,,97.0,0
+86,Male,Dizziness,93,93.0,93.0,93.0,0
+87,Male,Chest Pain,96,96.0,96.0,96.0,1
+28,Male,Cough,94,94.0,,94.0,0
+33,Female,Chest Pain,96,96.0,,96.0,0
+76,Female,Dizziness,95,95.0,95.0,95.0,1
+87,Male,Abdominal Pain,97,97.0,97.0,97.0,0
+20,Female,Fatigue,97,97.0,,,0
+37,Female,Cough,95,,,95.0,0
+76,Male,Fever,98,98.0,98.0,98.0,0
+53,Male,Fever,93,93.0,93.0,93.0,0
+36,Female,Dizziness,92,92.0,92.0,92.0,0
+84,Female,Fever,95,95.0,95.0,95.0,0
+36,Female,Fatigue,96,96.0,96.0,96.0,0
+37,Female,Dizziness,95,95.0,95.0,95.0,0
+88,Female,Fatigue,95,95.0,95.0,95.0,0
+69,Female,Abdominal Pain,95,,95.0,95.0,0
+50,Female,Chest Pain,95,95.0,95.0,95.0,0
+57,Female,Abdominal Pain,93,,93.0,93.0,0
+56,Male,Abdominal Pain,97,97.0,97.0,97.0,0
+18,Male,Fatigue,99,99.0,,99.0,0
+28,Male,Dizziness,97,97.0,,97.0,0
+74,Female,Dizziness,98,98.0,98.0,98.0,0
+67,Female,Fever,93,93.0,93.0,93.0,0
+40,Female,Shortness of Breath,89,,89.0,,0
+48,Male,Chest Pain,95,95.0,95.0,95.0,1
+59,Male,Fatigue,95,95.0,95.0,95.0,0
+24,Male,Fever,98,98.0,98.0,98.0,0
+33,Male,Cough,96,96.0,96.0,96.0,0
+77,Female,Shortness of Breath,91,91.0,91.0,,0
+19,Male,Shortness of Breath,91,,91.0,,0
+18,Male,Fatigue,100,100.0,100.0,100.0,0
+65,Female,Headache,95,95.0,95.0,95.0,0
+29,Male,Chest Pain,99,,99.0,99.0,0
+86,Female,Shortness of Breath,91,91.0,91.0,,1
+54,Female,Fatigue,97,,97.0,97.0,0
+49,Male,Fatigue,97,,97.0,97.0,0
+26,Female,Fever,98,,98.0,98.0,0
+36,Female,Cough,98,98.0,98.0,98.0,0
+65,Female,Headache,98,98.0,98.0,98.0,0
+20,Male,Chest Pain,98,98.0,98.0,98.0,0
+37,Female,Dizziness,98,98.0,98.0,98.0,0
+41,Female,Abdominal Pain,96,96.0,96.0,96.0,0
+71,Male,Cough,98,98.0,98.0,98.0,0
+50,Male,Cough,95,95.0,95.0,95.0,0
+41,Female,Fever,100,,100.0,100.0,0
+89,Female,Dizziness,94,94.0,94.0,94.0,0
+53,Male,Shortness of Breath,89,89.0,89.0,,0
+55,Female,Shortness of Breath,92,92.0,92.0,92.0,1
+42,Male,Fever,95,95.0,95.0,95.0,0
+35,Male,Fatigue,98,,,,0
+83,Male,Shortness of Breath,89,,89.0,89.0,1
+71,Male,Headache,94,94.0,94.0,94.0,0
+52,Male,Chest Pain,92,92.0,92.0,92.0,0
+78,Male,Cough,94,,94.0,94.0,0
+58,Female,Cough,91,91.0,91.0,91.0,0
+50,Male,Headache,93,,93.0,,0
+85,Male,Dizziness,96,96.0,96.0,96.0,0
+50,Female,Shortness of Breath,93,93.0,,93.0,0
+31,Male,Cough,98,98.0,98.0,98.0,0
+38,Female,Abdominal Pain,95,,95.0,95.0,0
+65,Male,Dizziness,95,,95.0,95.0,0
+37,Male,Chest Pain,97,97.0,97.0,97.0,1
+25,Male,Chest Pain,95,,,95.0,1
+24,Male,Cough,100,100.0,100.0,100.0,0
+84,Male,Fever,96,,96.0,96.0,0
+34,Male,Dizziness,96,96.0,96.0,96.0,0
+50,Male,Cough,96,96.0,96.0,96.0,0
+65,Male,Fever,96,96.0,96.0,,0
+76,Male,Cough,91,91.0,91.0,91.0,1
+39,Male,Abdominal Pain,96,96.0,,96.0,0
+47,Male,Dizziness,95,95.0,,95.0,0
+55,Female,Fatigue,94,94.0,94.0,94.0,0
+68,Female,Chest Pain,94,94.0,94.0,,0
+71,Male,Cough,98,,98.0,98.0,0
+25,Female,Abdominal Pain,98,98.0,98.0,98.0,0
+44,Female,Fever,95,95.0,,95.0,0
+44,Male,Fever,97,,97.0,97.0,0
+38,Female,Chest Pain,99,99.0,,99.0,0
+47,Female,Headache,98,98.0,98.0,98.0,0
+45,Male,Cough,96,96.0,96.0,96.0,0
+81,Male,Dizziness,93,93.0,93.0,93.0,0
+86,Female,Shortness of Breath,91,91.0,91.0,91.0,1
+78,Female,Fever,95,,95.0,95.0,1
+65,Male,Dizziness,97,97.0,97.0,,0
+36,Male,Dizziness,98,98.0,98.0,98.0,0
+21,Male,Fatigue,99,,,,0
+52,Female,Dizziness,95,95.0,95.0,95.0,0
+81,Female,Dizziness,97,97.0,97.0,97.0,0
+66,Male,Fatigue,95,,95.0,,0
+34,Male,Fever,100,100.0,,100.0,0
+61,Female,Dizziness,94,94.0,94.0,94.0,0
+47,Male,Headache,100,,100.0,100.0,0
+63,Male,Headache,96,96.0,96.0,96.0,0
+23,Female,Abdominal Pain,96,96.0,,,0
+54,Female,Fatigue,95,95.0,95.0,95.0,0
+41,Female,Abdominal Pain,96,96.0,96.0,96.0,0
+63,Female,Fatigue,96,96.0,96.0,96.0,0
+70,Male,Cough,96,,96.0,,0
+77,Male,Cough,93,93.0,93.0,93.0,0
+80,Female,Dizziness,94,94.0,94.0,94.0,0
+49,Male,Shortness of Breath,96,96.0,96.0,96.0,0
+50,Male,Cough,99,,99.0,,0
+84,Male,Shortness of Breath,91,91.0,91.0,,1
+35,Male,Cough,97,,,97.0,0
+42,Male,Chest Pain,97,97.0,97.0,97.0,0
+71,Male,Cough,96,96.0,96.0,96.0,0
+75,Male,Abdominal Pain,93,93.0,93.0,93.0,0
+84,Male,Fever,94,94.0,94.0,94.0,0
+63,Female,Dizziness,92,92.0,92.0,92.0,0
+41,Female,Abdominal Pain,97,97.0,97.0,97.0,0
+49,Female,Fever,97,97.0,,97.0,0
+64,Female,Headache,94,94.0,94.0,94.0,0
+40,Female,Abdominal Pain,100,100.0,100.0,100.0,0
+83,Male,Headache,92,92.0,92.0,92.0,1
+44,Female,Shortness of Breath,89,89.0,89.0,,0
+19,Female,Shortness of Breath,94,94.0,,94.0,0
+34,Female,Chest Pain,99,99.0,99.0,99.0,0
+50,Male,Cough,99,99.0,99.0,99.0,0
+26,Male,Abdominal Pain,96,96.0,96.0,96.0,0
+60,Male,Headache,98,,98.0,98.0,0
+65,Male,Fever,95,95.0,95.0,95.0,0
+56,Female,Shortness of Breath,91,91.0,,,0
+59,Female,Cough,97,97.0,97.0,97.0,0
+43,Male,Shortness of Breath,94,94.0,94.0,94.0,0
+67,Female,Fever,92,92.0,92.0,92.0,0
+42,Female,Cough,99,99.0,99.0,,0
+41,Male,Cough,99,99.0,99.0,99.0,0
+30,Male,Headache,96,,96.0,96.0,0
+77,Male,Headache,95,95.0,95.0,95.0,0
+24,Male,Abdominal Pain,98,,,98.0,0
+74,Male,Abdominal Pain,95,95.0,95.0,95.0,0
+53,Male,Fatigue,95,95.0,95.0,95.0,0
+62,Male,Dizziness,94,94.0,94.0,94.0,0
+37,Male,Fatigue,96,,,96.0,0
+82,Female,Chest Pain,97,,97.0,97.0,1
+25,Male,Shortness of Breath,94,94.0,,94.0,0
+33,Female,Abdominal Pain,96,,96.0,96.0,0
+31,Male,Headache,98,,98.0,98.0,0
+32,Female,Fever,91,,,,0
+83,Male,Headache,97,97.0,97.0,97.0,0
+49,Male,Shortness of Breath,88,88.0,88.0,,0
+80,Female,Fatigue,94,94.0,94.0,94.0,0
+68,Female,Headache,93,93.0,,93.0,0
+42,Female,Dizziness,94,94.0,94.0,,0
+75,Male,Chest Pain,97,97.0,97.0,97.0,0
+80,Male,Shortness of Breath,89,89.0,89.0,,0
+79,Female,Fatigue,95,,95.0,95.0,0
+39,Female,Dizziness,96,,,96.0,0
+75,Female,Fever,96,,96.0,,0
+75,Female,Fatigue,95,95.0,95.0,95.0,0
+66,Male,Cough,93,93.0,93.0,,0
+69,Female,Dizziness,97,97.0,,97.0,0
+59,Male,Dizziness,94,,94.0,94.0,0
+87,Male,Chest Pain,91,,91.0,,1
+32,Male,Shortness of Breath,92,92.0,,92.0,0
+71,Female,Fever,98,98.0,98.0,98.0,0
+77,Male,Chest Pain,96,96.0,96.0,96.0,0
+25,Male,Fatigue,96,96.0,96.0,96.0,0
+70,Female,Chest Pain,94,94.0,94.0,94.0,1
+77,Male,Dizziness,94,94.0,94.0,94.0,0
+22,Female,Shortness of Breath,97,,97.0,97.0,0
+85,Male,Abdominal Pain,95,95.0,,95.0,0
+23,Female,Chest Pain,98,98.0,,98.0,0
+64,Female,Cough,97,97.0,,97.0,0
+72,Male,Chest Pain,95,95.0,95.0,95.0,0
+57,Male,Fatigue,95,,95.0,,0
+69,Male,Fatigue,95,95.0,95.0,95.0,0
+33,Male,Fever,97,97.0,,97.0,0
+30,Female,Fatigue,97,97.0,,97.0,0
+47,Male,Headache,98,98.0,98.0,98.0,0
+36,Female,Shortness of Breath,93,93.0,,93.0,0
+34,Male,Shortness of Breath,94,94.0,94.0,,0
+80,Female,Abdominal Pain,94,94.0,94.0,94.0,1
+36,Female,Abdominal Pain,97,97.0,97.0,97.0,0
+75,Female,Shortness of Breath,87,87.0,87.0,,1
+72,Male,Cough,97,,97.0,97.0,0
+79,Male,Abdominal Pain,95,95.0,95.0,95.0,0
+40,Male,Fever,98,98.0,,98.0,0
+26,Female,Fatigue,91,91.0,,91.0,0
+29,Female,Shortness of Breath,97,97.0,97.0,97.0,0
+18,Female,Dizziness,97,97.0,,97.0,0
+75,Male,Abdominal Pain,97,97.0,97.0,97.0,0
+18,Female,Shortness of Breath,91,91.0,91.0,,0
+51,Female,Headache,97,97.0,97.0,,0
+65,Male,Chest Pain,93,93.0,93.0,93.0,0
+18,Male,Fatigue,96,,,96.0,0
+33,Female,Shortness of Breath,97,,97.0,97.0,0
+78,Female,Chest Pain,94,94.0,94.0,94.0,0
+81,Female,Abdominal Pain,95,95.0,95.0,95.0,1
+80,Male,Chest Pain,96,96.0,,96.0,0
+86,Female,Fatigue,95,95.0,95.0,95.0,0
+39,Male,Shortness of Breath,93,93.0,93.0,93.0,0
+84,Male,Headache,95,95.0,95.0,,0
+43,Male,Cough,100,100.0,100.0,100.0,0
+33,Female,Abdominal Pain,97,97.0,97.0,97.0,0
+68,Female,Shortness of Breath,91,91.0,91.0,91.0,0
+74,Female,Fatigue,97,97.0,97.0,97.0,0
+46,Male,Abdominal Pain,98,98.0,98.0,98.0,0
+86,Female,Fever,96,96.0,96.0,96.0,0
+64,Male,Chest Pain,96,96.0,96.0,96.0,1
+79,Female,Cough,92,92.0,92.0,92.0,0
+86,Male,Fatigue,97,,97.0,97.0,0
+33,Male,Fever,94,94.0,,94.0,0
+65,Male,Dizziness,96,96.0,96.0,96.0,0
+56,Male,Shortness of Breath,90,90.0,90.0,,1
+50,Female,Headache,96,,96.0,96.0,0
+40,Female,Abdominal Pain,97,,97.0,97.0,0
+27,Male,Chest Pain,98,,,98.0,0
+86,Female,Abdominal Pain,95,95.0,95.0,95.0,0
+51,Male,Cough,99,99.0,99.0,99.0,0
+69,Female,Shortness of Breath,92,92.0,92.0,92.0,1
+27,Female,Abdominal Pain,97,97.0,,97.0,1
+36,Female,Chest Pain,99,99.0,99.0,99.0,0
+75,Male,Shortness of Breath,93,93.0,93.0,93.0,0
+18,Female,Abdominal Pain,95,95.0,95.0,95.0,0
+86,Female,Headache,95,95.0,95.0,95.0,0
+21,Male,Fatigue,99,99.0,99.0,,0
+33,Male,Shortness of Breath,92,92.0,92.0,92.0,0
+41,Female,Fatigue,99,99.0,,99.0,0
+19,Female,Dizziness,97,97.0,,97.0,0
+49,Female,Shortness of Breath,92,92.0,92.0,92.0,0

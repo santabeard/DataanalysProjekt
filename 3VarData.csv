@@ -1,0 +1,29 @@
+Patient_ID,Age,Gender,Complaint,Target_Diagnosis,ICD10_Code
+PT-001,45,Female,Persistent migraine and light sensitivity,Migraine,G43.9
+PT-002,67,Male,Shortness of breath and mild chest tightness,Angina pectoris,I20.9
+PT-003,24,Male,Lower back pain radiating to the left leg,Sciatica / Lumbar radiculopathy,M54.3
+PT-004,9,Female,High fever and sore throat and lethargy,Acute streptococcal pharyngitis,J02.0
+PT-005,82,Female,Dizziness and fatigue and recent fall,Orthostatic hypotension,I95.1
+PT-006,34,Non-binary,Routine physical exam and prescription refill,Encounter for general adult exam,Z00.00
+PT-007,55,Male,Severe abdominal pain and nausea,Acute appendicitis,K35.80
+PT-008,19,Female,Swollen right ankle after sports injury,Ankle sprain,S93.401A
+PT-009,71,Male,Joint stiffness in hands and knees,Osteoarthritis,M15.9
+PT-010,41,Female,Persistent dry cough lasting three weeks,Post-infectious / Subacute cough,R05.9
+PT-011,28,Male,Unexplained skin rash on forearms,Contact dermatitis,L25.9
+PT-012,60,Female,Blurred vision and increased urination,Type 2 diabetes mellitus,E11.9
+PT-013,52,Male,Frequent thirst and tingling in toes,Type 2 diabetes mellitus,E11.9
+PT-014,29,Non-binary,Throbbing headache on one side with nausea,Migraine,G43.9
+PT-015,45,Male,Twisted ankle stepping off a curb and bruising,Ankle sprain,S93.401A
+PT-016,68,Female,Chronic knee pain worse in the mornings,Osteoarthritis,M15.9
+PT-017,14,Male,Sharp pain in lower right abdomen and vomiting,Acute appendicitis,K35.80
+PT-018,22,Female,Wheezing and shortness of breath after exercise,Asthma,J45.909
+PT-019,11,Male,Persistent nighttime cough and chest tightness,Asthma,J45.909
+PT-020,58,Female,Occasional headaches and high BP readings at home,Essential hypertension,I10
+PT-021,70,Female,Pressure in chest when climbing stairs,Angina pectoris,I20.9
+PT-022,31,Male,Sharp shooting pain down the back of right thigh,Sciatica / Lumbar radiculopathy,M54.3
+PT-023,7,Male,Painful swallowing and white patches on tonsils,Acute streptococcal pharyngitis,J02.0
+PT-024,75,Male,Lightheadedness when standing up too quickly,Orthostatic hypotension,I95.1
+PT-025,40,Female,Annual checkup and bloodwork,Encounter for general adult exam,Z00.00
+PT-026,35,Male,Lingering tickle in throat and dry cough,Post-infectious / Subacute cough,R05.9
+PT-027,24,Female,Itchy red bumps after wearing new jewelry,Contact dermatitis,L25.9
+PT-028,61,Male,Consistent elevated blood pressure at pharmacy,Essential hypertension,I10
