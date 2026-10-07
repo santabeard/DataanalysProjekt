@@ -4,13 +4,21 @@ Companion document to `MVP.ipynb`. It explains the model mathematically, states
 which choices are assumptions rather than facts, records the verified results,
 and gives the reasoning behind the comparison between missingness mechanisms.
 
-All figures in sections 7–10 come from an executed run of the notebook code,
-not from estimates or recollection — **except** where flagged. The dataset was
-rebuilt after that run (see section 13), so sections 7 and 10 are records of the
-previous dataset, and section 9's flag ORs and AUCs are a fresh *frequentist*
-refit (scikit-learn), not the PyMC posteriors. The mechanism-level quantities in
-section 8 and the generation parameters in section 13 are computed against the
-current file. Re-run `MVP.ipynb` to replace the stale posteriors.
+Figures in sections 7, 9 and 10 are labelled with their provenance, and two of
+them are stale in ways that matter. Read section 14 before quoting any AUC.
+
+- **Sections 7 and 10** are records of a previous dataset and are marked as such.
+- **Section 9** is a *frequentist* cross-validated refit (scikit-learn, median
+  filled inside each fold), not the PyMC posteriors. It is the trustworthy
+  performance comparison.
+- **Section 14** documents a defect in the notebook's own PyMC model: it imputes
+  saturation inside the outcome model, so the imputed value sees the label it is
+  meant to help predict. This inflates the Bayesian AUCs and biases them *in
+  favour of* MNAR. It is the most important caveat in this document.
+
+The mechanism-level quantities in section 8 and the generation parameters in
+section 13 are computed against the current file. The cells appended to
+`MVP.ipynb` reproduce sections 9 and 14 end to end.
 
 ---
 
@@ -198,16 +206,23 @@ narrows the guess toward "probably low" without determining it. See section 9.
 
 ## 7. Verified results
 
-> **Stale — re-run required.** Every number in this section comes from an
-> executed run against the *previous* dataset. `healthcare_dataset_2_missingness.csv`
-> has since been rebuilt around realistic missingness mechanisms (section 13), so
-> the divergences, `r_hat`, ESS, alpha, mean-risk gaps and calibration table below
-> no longer describe it. The observed rates have moved substantially: the cohort
-> now has 49 deaths rather than 44, and Fever is the highest-mortality complaint
-> at 22.9% rather than Shortness of Breath. Treat this section as a record of the
-> previous run, not a result. What does carry over is the structure — all four
-> designs are still full rank, 9 of 9 for A and 11 of 11 for B, C and D, and
-> section 9's frequentist refit is a usable check in the meantime.
+> **Stale on two counts — do not quote this section.** Every number here comes
+> from an executed run against the *previous* dataset.
+> `healthcare_dataset_2_missingness.csv` has since been rebuilt around realistic
+> missingness mechanisms (section 13), so the divergences, `r_hat`, ESS, alpha,
+> mean-risk gaps and calibration table below no longer describe it. The cohort now
+> has 49 deaths rather than 44.
+>
+> More seriously, the model that produced these numbers imputes saturation inside
+> the outcome model, so the fitted coefficients are contaminated by outcome
+> information — see **section 14**. The clean diagnostics in the table below are
+> therefore not evidence of correctness. Rerunning the same specification on the
+> current data reproduces clean sampling and hands MNAR the *best* AUC, which is
+> the defect, not a finding.
+>
+> What does carry over is the structure — all four designs are full rank, 9 of 9
+> for A and 11 of 11 for B, C and D. For usable performance numbers see
+> section 9; for the leakage, section 14.
 
 Executed run, 4 chains, 2000 tuning + 2000 draws, `target_accept=0.9`,
 `random_seed=42`:
@@ -313,6 +328,13 @@ median fitted flag OR is 1.90 for MCAR, 1.71 for MAR and 4.35 for MNAR: the
 *ordering* is stable, but no mechanism sits at 1.00, and MNAR's headline
 number is a median-imputation effect rather than a measurement of the mechanism.
 
+> These flag ORs are **in-sample, single-split, and inflated by construction** —
+> fitted on all 400 rows with the median computed on those same rows, so no
+> honest standard error attaches to them. They are shown because the collapse
+> from 6.56 to 1.02 is the point being made, not as reportable estimates. For
+> cross-validated AUC on the current dataset see section 9; for why the Bayesian
+> flag posteriors are not usable at all see section 14.
+
 If the aim is to compare mechanisms, compare the deficit column, or use an
 encoding that does not impute — multiple imputation, or a pattern-mixture
 model that carries an explicit shift parameter. Both are outside the scope of
@@ -324,45 +346,99 @@ this notebook, which is why the deficit table is the honest one.
 
 Crude figures against the current dataset, before any model:
 
-| mechanism | missing | deaths where missing | deaths where present | crude OR | 95% CI |
-|-----------|---------|---------------------|---------------------|----------|--------|
-| MCAR | 69 (17.2%) | 6 (8.7%) | 43 (13.0%) | 0.67 | 0.27 – 1.63 |
-| MAR  | 52 (13.0%) | 5 (9.6%) | 44 (12.6%) | 0.76 | 0.29 – 2.01 |
-| MNAR | 54 (13.5%) | 11 (20.4%) | 38 (11.0%) | 1.85 | 0.89 – 3.85 |
+| mechanism | missing | deaths where missing | deaths where present | crude OR |
+|-----------|---------|---------------------|---------------------|----------|
+| MCAR | 69 (17.2%) | 6 (8.7%) | 43 (13.0%) | 0.64 |
+| MAR  | 52 (13.0%) | 5 (9.6%) | 44 (12.6%) | 0.74 |
+| MNAR | 54 (13.5%) | 11 (20.4%) | 38 (11.0%) | **2.07** |
 
-**All three straddle 1.0.** The crude table cannot separate the mechanisms, and
-it is also the wrong instrument: it compares death rates without conditioning on
-age or complaint, so it mixes the mechanism with the confounders.
+All three intervals straddle 1.0. The crude table also compares death rates
+without conditioning on age or complaint, so it mixes the mechanism with the
+confounders.
 
-The fitted comparison does separate them, and in the predicted order. Unpenalised
-logistic on the same design as the notebook, 5-fold CV AUC in brackets:
+### 9.1 Calibration, not discrimination, is where MNAR shows up
 
-| fit | flag OR | 95% CI | AUC |
-|-----|---------|--------|-----|
-| A — no saturation | — | — | 0.661 |
-| B (MCAR) | 1.08 | 0.59 – 1.98 | 0.752 |
-| C (MAR)  | 1.34 | 0.68 – 2.64 | 0.768 |
-| D (MNAR) | **6.56** | 2.74 – 15.69 | 0.754 |
+Frequentist logistic on the same design as the notebook, 5-fold CV, median
+**filled inside each fold** so no test-fold information reaches the imputation.
+This is the honest comparison and it is reproduced in the notebook.
 
-Two things to read off this, and they point opposite ways.
+Calibration split by whether the reading was kept:
 
-The **flag ORs separate**: 1.08, 1.34, 6.56. MNAR is the only one whose interval
-excludes 1.0.
+| mechanism | obs \| missing | pred \| missing | **gap** | obs \| present | pred \| present | gap |
+|-----------|----------------|-----------------|---------|----------------|-----------------|-----|
+| MCAR | 8.7% | 8.7% | **−0.0 pp** | 13.0% | 12.7% | −0.3 pp |
+| MAR  | 9.6% | 9.1% | **−0.5 pp** | 12.6% | 12.4% | −0.3 pp |
+| MNAR | 20.4% | 17.6% | **−2.7 pp** | 11.0% | 10.8% | −0.2 pp |
 
-The **AUCs do not**: 0.752, 0.768, 0.754. All three fits predict about equally
-well. That is the correct and expected result, not a disappointment. The
-mechanism governs *which* patients lose a reading, not *how much* information the
-cohort retains — every mechanism costs roughly the same number of observations,
-so predictive performance is nearly identical. Section 8 is the important
-caveat on the flag column: its 6.56 is inflated by median imputation, and the
-deficit table, not this one, is the honest measurement of MNAR.
+Read the two right-hand gap columns together. On rows that **kept** a reading,
+every mechanism calibrates to within a third of a point. On rows that **lost**
+one, MCAR and MAR still hold, and MNAR falls 2.7 points short. That is the
+mechanism working exactly as designed: the model under-predicts death for
+precisely the patients whose saturation is most likely to be dangerous, because
+the median fill hands them an oxygenation they never had.
 
-> The PyMC posteriors in `MVP.ipynb` have not been re-executed against this
-> dataset. The figures above are frequentist, fitted with scikit-learn, and are
-> offered as a check on the expected ordering rather than as a replacement for
-> the Bayesian run.
+**AUC barely registers any of it:**
 
-### How much resolution 49 deaths buys
+| mechanism | AUC | TPR @ FPR=0.10 | TPR @ FPR=0.20 | Brier |
+|-----------|-----|----------------|----------------|-------|
+| fit A — no saturation | 0.648 | — | — | — |
+| MCAR | 0.752 | 0.449 | 0.531 | 0.0925 |
+| MAR  | 0.768 | 0.490 | 0.592 | 0.0921 |
+| MNAR | 0.760 | **0.408** | 0.551 | 0.0965 |
+
+Three separate things follow from this table.
+
+**ROC/AUC cannot see a level shift.** It is a ranking statistic: it asks how
+often a random patient who died outranks a random one who survived. Lowering
+every prediction by the same amount reorders nothing. MNAR's damage is a shift in
+level, so it is invisible by construction.
+
+**The flag cannot add information either.** `sat_missing` is a deterministic
+function of whether the reading exists, and under MNAR that already depends on
+the value. It is a noisy recoding of `saturation`, which the model already has.
+
+**And it does not buy a better operating point.** At FPR = 0.10 MNAR has the
+*worst* sensitivity of the three (0.408 against 0.449 and 0.490). This is the
+direct answer to "should MNAR show a better true-positive / false-positive
+ratio?" — no, and it does not. A mechanism that destroys information cannot buy
+discrimination back.
+
+### 9.2 The common-subset check
+
+The full-data AUCs differ by up to 0.016. Restrict all three fits to the **251
+patients whose reading survives under all three mechanisms** and the spread
+collapses:
+
+| mechanism | AUC, full data | AUC, 251 common rows |
+|-----------|---------------|----------------------|
+| MCAR | 0.752 | 0.790 |
+| MAR  | 0.768 | 0.792 |
+| MNAR | 0.760 | 0.784 |
+
+Much of the apparent difference between mechanisms is *which rows each one
+removed*, not how well the model predicts. Any comparison of missingness
+mechanisms should start by asking a mechanism which rows it drops.
+
+### 9.3 What would actually fix it
+
+A shift, not a flag. Re-run the MNAR fit with the imputed values moved down by
+`delta`, emulating an imputation that knows the missing rows are hypoxaemic:
+
+| delta | AUC | pred \| missing | gap |
+|-------|-----|-----------------|-----|
+| 0.00 | 0.760 | 17.6% | −2.7 pp |
+| **2.00** | 0.765 | 20.4% | **−0.0 pp** |
+| 4.00 | 0.766 | 20.3% | −0.1 pp |
+| 5.35 | 0.766 | 20.3% | −0.1 pp |
+
+**Two points of calibration close; AUC moves 0.006.** The ranking was never the
+thing that broke, so no amount of flag tuning will move the ROC curve. The fix
+belongs in the encoding — a pattern-mixture model with an explicit shift
+parameter, or multiple imputation under a selection model. Both are outside this
+notebook's scope, which is why the flag-based fit is reported with its caveat
+rather than as a resolution.
+
+### 9.4 How much resolution 49 deaths buys
 
 This is arithmetic, not a modelling failure:
 
@@ -371,23 +447,17 @@ This is arithmetic, not a modelling failure:
 conventional minimum        = ~10 events per coefficient
 ```
 
-The MNAR interval is the widest of the three at 2.74 – 15.69, a factor of nearly
-six end to end. That width is what four-to-five events per coefficient buys, and
-it is why the crude table in this section cannot resolve a mechanism the fitted
-table can.
-
-### The ceiling for MNAR is not fit D
+### 9.5 The ceiling for MNAR is not fit D
 
 The complete-data reference no longer exists in this file. The
 `true_saturation` column was removed when the mechanisms were rebuilt, so there
 is no fully observed saturation left to fit against. One of the 400 rows is
-missing from all three columns at once and has no recoverable saturation in this
-dataset at all.
+missing from all three columns at once and has no recoverable saturation here.
 
-MNAR is a **loss, not a gift.** The mechanism that makes the flag look
-informative is the same one that removed 11 of the 49 deaths, disproportionately
-the hypoxaemic ones. Fit D should be expected to perform *worse* than
-complete-data, not better — and on these AUCs it does not even manage that much.
+MNAR is a **loss, not a gift.** The mechanism that concentrates the missing rows
+in the hypoxaemic tail is the same one that removed 11 of the 49 deaths,
+disproportionately the hypoxaemic ones. Fit D should be expected to perform
+*worse* than complete-data, not better.
 
 ---
 
@@ -447,19 +517,27 @@ refitting the median and sd on the full dataset first would leak information.
 
 ## 12. Limits
 
+- **The Bayesian fits leak the outcome into the imputation.** Section 14: cell 1
+  draws `sat_imputed` inside the outcome model, so every missing row is handed a
+  value informed by whether it died — correlation −0.997 with its own label. The
+  AUCs and flag posteriors from `MVP.ipynb` are optimistic and biased *in favour
+  of* MNAR. This is the single most important caveat in the document.
 - **The flag coefficient is not a valid measure of the mechanism.** Section 8
   shows that median imputation inflates it for all three, and that MNAR's
   headline 6.56 falls to 1.02 when the true value is supplied. The deficit table
-  is the honest comparison. This is the single most important caveat in the
-  document and it applies to any conclusion drawn from fits B, C and D.
-- **The three mechanisms predict equally well.** AUC 0.752, 0.768, 0.754. The
-  mechanism changes who loses a reading, not how much the cohort retains, so
+  is the honest comparison.
+- **The three mechanisms predict equally well.** Cross-validated AUC 0.752,
+  0.768, 0.760, and 0.784 – 0.792 once restricted to the 251 rows all three keep.
+  The mechanism changes who loses a reading, not how much the cohort retains, so
   there is no predictive gain to be had from identifying it.
+- **MNAR costs calibration, and the AUC never shows it.** 2.7 points of
+  under-prediction on the rows that lost a reading, against −0.0 and −0.5 for MCAR
+  and MAR, with AUC differences under 0.02. Section 9.3 shows a 2-point imputation
+  shift closes the calibration gap and moves AUC by 0.006.
 - **49 deaths against 11 coefficients.** Roughly 4.5 events per coefficient
-  against a conventional minimum of 10. The MNAR interval spans 2.74 – 15.69.
-- **The B/C/D posteriors are unverified.** The Bayesian figures in
-  `MVP.ipynb` have not been re-executed against this dataset; section 9's
-  numbers are frequentist.
+  against a conventional minimum of 10.
+- **The B/C/D posteriors are unverified and, per section 14, not trustworthy
+  anyway.** Section 9's numbers are frequentist and cross-validated.
 - **The saturation term is misspecified on purpose.** Mortality is generated
   with a squared penalty below 92 and an accelerating age term, so a linear
   `beta_sat` cannot be exactly right. That is realistic, and section 11 notes
@@ -531,6 +609,24 @@ Complaint offsets: Shortness of Breath `+0.80`, Chest Pain `+0.75`, Cough
 Abdominal Pain `−0.20`. Yields **49 deaths of 400 (12.2%)**,
 `corr(saturation, mortality) = −0.357`.
 
+The resulting gradient, which is the effect size the MNAR mechanism selects on:
+
+| saturation band | deaths | n | mortality |
+|---|---|---|---|
+| 84–89 | 16 | 38 | **42.1%** |
+| 90–92 | 6 | 41 | 14.6% |
+| 93–95 | 16 | 98 | 16.3% |
+| 96–100 | 11 | 222 | 5.0% |
+
+**SpO₂ 84–89 carries 42.1% mortality (16/38) against 9.1% above 90**, roughly
+4.6×. This is deliberately steeper than a typical real cohort and it is the
+single most important design choice in the simulation: it is what gives the MNAR
+mechanism something to select on, and it is why the MNAR calibration gap in
+section 9.1 is as large as it is. Two caveats before it is quoted anywhere — the
+severe band is only 38 patients, and the 90–92 band (14.6%) sits *below* the
+93–95 band (16.3%), so the gradient is monotone in severity only across the
+severe threshold, not within the middle of the range.
+
 Saturation is a **partial** driver, not the only one: it acts alongside age and
 complaint, which is what makes `beta_sat` identifiable separately from the
 complaint dummies. Fever ends up the highest-mortality complaint at 11 of 48,
@@ -568,3 +664,71 @@ analysis the complete-data answer and make the comparison pointless. One row is
 missing from all three columns at once and is unrecoverable here by design. The
 deficit table in section 8 was computed against the generator's own output, not
 against anything recoverable from the file.
+
+---
+
+## 14. A defect in the notebook's own model
+
+This section is the one to read before quoting any AUC from `MVP.ipynb`.
+
+Cell 1 imputes saturation **inside** the model that predicts the outcome:
+
+```python
+sat_imputed = pm.Normal("sat_imputed", mu=95, sigma=3, observed=sat_masked)
+...
+pm.Bernoulli("likelihood", logit_p=log_odds, observed=base_df["mortality_30_days"])
+```
+
+For a patient with no reading, `sat_imputed` is a latent variable drawn from a
+posterior that has **already seen that patient's outcome**. The imputation is
+conditioned on the very label it is meant to help predict. That is leakage, and
+it is silent: PyMC emits an `ImputationWarning` and samples anyway, so
+divergences stay at zero, `r_hat` sits near 1 and ESS is in the thousands. No
+standard convergence check catches it.
+
+### It is not subtle
+
+The appended notebook cell measures it directly, comparing the joint model
+against the identical prior with no likelihood at all:
+
+| mechanism | imputed \| died | imputed \| lived | blind-draw mean | corr(imputed, own outcome) |
+|-----------|-----------------|-----------------|-----------------|---------------------------|
+| MCAR | 94.31 | 95.68 | 95.00 | **−0.997** |
+| MNAR | 94.02 | 95.97 | 95.00 | **−0.999** |
+
+Under the outcome-free prior every imputation lands on 95.0, the prior mean, as
+it must. In the joint model the values for patients who **died** sit about 1.6
+points below those for patients who lived, and the correlation between an
+imputed value and its own row's outcome is −0.997. The imputation is not
+predicting the outcome. It is reading it.
+
+### Why it inverts the conclusion
+
+Rerunning the notebook's own specification gives:
+
+```
+MCAR 0.822    MAR 0.825    MNAR 0.831
+```
+
+MNAR appears to be the **best** mechanism. That is backwards, and it is the leak
+doing it: the amount of outcome information leaking into the imputation scales
+with how strongly the outcome depends on saturation, which is largest exactly
+where MNAR removed the readings. The mechanism that most needs the information
+gets the most of it handed back.
+
+The trustworthy numbers are the frequentist ones in section 9, where the median
+is filled inside each training fold and never sees the outcome. There MNAR is
+worst on sensitivity at a matched false-positive rate and 2.7 points short on
+calibration for the rows that lost a reading.
+
+### The fix, if you want the Bayesian version
+
+Impute outside the outcome model. Either fit the saturation model first and
+carry the imputations forward, or use multiple imputation under an explicit
+selection model, or a pattern-mixture model with a shift parameter — which is
+also the answer to section 9.3. Do not rely on a latent variable to absorb the
+label.
+
+The same caution applies to the flag ORs quoted anywhere in this document. Any
+coefficient fitted alongside an outcome-informed imputation is measuring the
+imputation as much as the mechanism.
