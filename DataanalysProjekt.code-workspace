@@ -9,5 +9,7 @@
 			"path": "../../../.Trash/ed_atlas"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.defaultInterpreterPath": "/home/theo/Work/DEV/skola/pda/.venv/bin/python"
+	}
 }
