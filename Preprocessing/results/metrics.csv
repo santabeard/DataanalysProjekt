@@ -1,0 +1,7 @@
+,RMSE_all,RMSE_mnar_vitals,coverage,mean_width
+Oracle (complete data),0.078,0.117,0.929,0.309
+Complete-case,0.166,0.256,0.929,0.575
+Mean imputation,0.134,0.208,0.786,0.283
+MICE,0.161,0.247,0.786,0.319
+"Bayes, MAR",0.164,0.246,0.714,0.33
+"Bayes, MNAR selection",0.08,0.128,0.929,0.329
