@@ -376,7 +376,7 @@ class EdAtlas:
       3. mortality_posterior / diagnosis_posterior() — full parameter posterior
 
     When a patient has two complaints, predictions mix in probability space:
-        P = 0.5 * sigmoid(mu_1) + 0.5 * sigmoid(mu_2)
+        P = 0.5 * E[sigmoid(z_1)] + 0.5 * E[sigmoid(z_2)],  z_i ~ N(mu_i, sigma_i^2)
     This is the correct E[P] under complaint uncertainty.
     """
 
@@ -471,7 +471,7 @@ class EdAtlas:
     def predict(
         self, age: int, is_male: int, sctids: list[str]
     ) -> np.ndarray:
-        """Posterior predictive mean P(diagnosis) for each ICD code.
+        """Posterior predictive mean E[sigmoid(logit)] per ICD code (quadrature).
 
         Args:
             age: Patient age (18-109).
@@ -484,14 +484,19 @@ class EdAtlas:
         ai = self._validate_age(age)
         if len(sctids) == 1:
             si = self._diag_sctid_to_idx[sctids[0]]
-            mus = self._diag_mus[si, ai, is_male]
-            return _sigmoid(mus)
+            return _logitnormal_mean(
+                self._diag_mus[si, ai, is_male], self._diag_sigmas[si, ai, is_male]
+            ).astype(np.float32)
         elif len(sctids) == 2:
             si0 = self._diag_sctid_to_idx[sctids[0]]
             si1 = self._diag_sctid_to_idx[sctids[1]]
-            p0 = _sigmoid(self._diag_mus[si0, ai, is_male])
-            p1 = _sigmoid(self._diag_mus[si1, ai, is_male])
-            return 0.5 * p0 + 0.5 * p1
+            p0 = _logitnormal_mean(
+                self._diag_mus[si0, ai, is_male], self._diag_sigmas[si0, ai, is_male]
+            )
+            p1 = _logitnormal_mean(
+                self._diag_mus[si1, ai, is_male], self._diag_sigmas[si1, ai, is_male]
+            )
+            return (0.5 * p0 + 0.5 * p1).astype(np.float32)
         else:
             raise ValueError(f"Expected 1 or 2 sctids, got {len(sctids)}")
 
@@ -535,7 +540,7 @@ class EdAtlas:
     def predict_death(
         self, age: int, is_male: int, sctids: list[str]
     ) -> float:
-        """Posterior predictive mean P(death within 30 days).
+        """Posterior predictive mean E[P(death within 30 days)] (quadrature).
 
         Args:
             age: Patient age (18-109).
@@ -548,12 +553,18 @@ class EdAtlas:
         ai = self._validate_age(age)
         if len(sctids) == 1:
             si = self._mort_sctid_to_idx[sctids[0]]
-            return float(_sigmoid(self._mort_mus[si, ai, is_male]))
+            return float(_logitnormal_mean(
+                self._mort_mus[si, ai, is_male], self._mort_sigmas[si, ai, is_male]
+            ))
         elif len(sctids) == 2:
             si0 = self._mort_sctid_to_idx[sctids[0]]
             si1 = self._mort_sctid_to_idx[sctids[1]]
-            p0 = _sigmoid(self._mort_mus[si0, ai, is_male])
-            p1 = _sigmoid(self._mort_mus[si1, ai, is_male])
+            p0 = _logitnormal_mean(
+                self._mort_mus[si0, ai, is_male], self._mort_sigmas[si0, ai, is_male]
+            )
+            p1 = _logitnormal_mean(
+                self._mort_mus[si1, ai, is_male], self._mort_sigmas[si1, ai, is_male]
+            )
             return float(0.5 * p0 + 0.5 * p1)
         else:
             raise ValueError(f"Expected 1 or 2 sctids, got {len(sctids)}")
@@ -661,3 +672,20 @@ class EdAtlas:
 
 def _sigmoid(x: np.ndarray | float) -> np.ndarray | float:
     return 1.0 / (1.0 + np.exp(-x))
+
+
+# Probabilists' Gauss-Hermite nodes/weights: E[f(Z)] ~ sum_i w_i f(x_i), Z ~ N(0, 1).
+_GH_NODES, _GH_WEIGHTS = np.polynomial.hermite_e.hermegauss(64)
+_GH_WEIGHTS = _GH_WEIGHTS / _GH_WEIGHTS.sum()
+
+
+def _logitnormal_mean(mu: np.ndarray | float, sigma: np.ndarray | float) -> np.ndarray | float:
+    """E[sigmoid(Z)], Z ~ N(mu, sigma^2), by Gauss-Hermite quadrature.
+
+    Computed in probability space; sigmoid(mu) is the median, not the mean,
+    and differs substantially from it when sigma is large.
+    """
+    mu = np.asarray(mu, dtype=np.float64)
+    sigma = np.asarray(sigma, dtype=np.float64)
+    z = mu[..., None] + sigma[..., None] * _GH_NODES
+    return _sigmoid(z) @ _GH_WEIGHTS
