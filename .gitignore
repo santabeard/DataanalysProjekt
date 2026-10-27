@@ -36,3 +36,4 @@ archive
 
 # --- OS noise ------------------------------------------------------------
 .DS_Store*.code-workspace
+data_pipeline/data_info/
