@@ -1,0 +1,166 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\title{A Candidate Joint Hierarchical Bayesian Logistic Regression Model}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and notation}
+
+The aim is to estimate the risk of death or diagnosis and to quantify its uncertainty using a Bayesian model. We compare a two-stage approximation with a joint model that represents uncertainty in both the old-data and new-data components.
+1
+Let the datasets be
+\[
+D_{\mathrm{old}}=\{(y_i^{(o)},x_i^{(o)})\}_{i=1}^{n_o},
+\qquad
+D_{\mathrm{new}}=\{(y_j^{(n)},x_j^{(n)})\}_{j=1}^{n_n},
+\]
+where $y\in\{0,1\}$ is the binary outcome and $x$ is a vector of predictors. Write $\sigma(z)=1/(1+\exp(-z))$ for the logistic function.
+
+\textbf{Important:} The specification below is a candidate template. The correct joint model depends on the likelihood and parameter relationships in the implemented two-stage model. In particular, if the datasets contain overlapping/repeated individuals, their dependence must be modelled rather than assuming independent likelihoods.
+
+\section{Likelihood for the old dataset}
+
+For observations in $D_{\mathrm{old}}$, suppose
+\[
+Y_i^{(o)}\mid \beta \sim \operatorname{Bernoulli}(p_i^{(o)}),
+\qquad
+p_i^{(o)}=\sigma\!\left((x_i^{(o)})^\top\beta\right).
+\]
+The old-data likelihood is
+\begin{align}
+L_o(\beta)
+&=p(D_{\mathrm{old}}\mid\beta)\\
+&=\prod_{i=1}^{n_o}
+\left(p_i^{(o)}\right)^{y_i^{(o)}}
+\left(1-p_i^{(o)}\right)^{1-y_i^{(o)}}.
+\end{align}
+
+\section{Likelihood for the new dataset}
+
+For observations in $D_{\mathrm{new}}$, suppose
+\[
+Y_j^{(n)}\mid \theta \sim \operatorname{Bernoulli}(p_j^{(n)}),
+\qquad
+p_j^{(n)}=\sigma\!\left((x_j^{(n)})^\top\theta\right).
+\]
+The new-data likelihood is
+\begin{align}
+L_n(\theta)
+&=p(D_{\mathrm{new}}\mid\theta)\\
+&=\prod_{j=1}^{n_n}
+\left(p_j^{(n)}\right)^{y_j^{(n)}}
+\left(1-p_j^{(n)}\right)^{1-y_j^{(n)}}.
+\end{align}
+
+\section{Priors and hierarchical relationship}
+
+One possible hierarchical specification is
+\[
+\beta\sim\mathcal N(m_0,\Sigma_0),
+\]
+and
+\[
+\theta\mid\beta,\tau\sim\mathcal N(A\beta,\tau^2 I),
+\qquad \tau>0.
+\]
+If $\tau$ is unknown, assign it a proper prior $p(\tau)$. Here $A$ is a specified matrix that maps the old-model coefficients to the scale and dimension of the new-model coefficients. Its use must be justified for the application; if the coefficients do not have a meaningful mapping, a different hierarchical link is needed.
+
+Conditional on the parameters, and assuming the datasets are independent,
+\[
+p(D_{\mathrm{old}},D_{\mathrm{new}}\mid\beta,\theta)
+=L_o(\beta)L_n(\theta).
+\]
+
+\section{Joint posterior derivation}
+
+By Bayes' rule,
+\[
+p(\beta,\theta,\tau\mid D_{\mathrm{old}},D_{\mathrm{new}})
+\propto
+p(D_{\mathrm{old}},D_{\mathrm{new}}\mid\beta,\theta,\tau)
+\,p(\theta\mid\beta,\tau)\,p(\beta)\,p(\tau).
+\]
+Using the conditional-independence assumption and the priors above gives
+\begin{align}
+&p(\beta,\theta,\tau\mid D_{\mathrm{old}},D_{\mathrm{new}})\\
+&\quad\propto
+L_o(\beta)L_n(\theta)\,
+\mathcal N(\theta;A\beta,\tau^2 I)\,
+\mathcal N(\beta;m_0,\Sigma_0)\,
+p(\tau).
+\label{eq:joint-posterior}
+\end{align}
+The proportionality omits the marginal likelihood, which is a normalising constant with respect to $(\beta,\theta,\tau)$.
+
+If $\tau$ is fixed rather than unknown, remove $\tau$ from the parameter set and omit $p(\tau)$ from \eqref{eq:joint-posterior}.
+
+\subsection{Log-posterior up to an additive constant}
+
+For computation, the log-posterior can be written as
+\begin{align}
+\log p(\beta,\theta,\tau\mid D_{\mathrm{old}},D_{\mathrm{new}})
+={}&
+\sum_{i=1}^{n_o}\left[
+y_i^{(o)}\log p_i^{(o)}
++(1-y_i^{(o)})\log(1-p_i^{(o)})
+\right]\\
+&+\sum_{j=1}^{n_n}\left[
+y_j^{(n)}\log p_j^{(n)}
++(1-y_j^{(n)})\log(1-p_j^{(n)})
+\right]\\
+&+\log\mathcal N(\theta;A\beta,\tau^2I)
++\log\mathcal N(\beta;m_0,\Sigma_0)
++\log p(\tau)+C,
+\end{align}
+where $C$ does not depend on the unknown parameters. Include or omit normal-distribution constants consistently depending on whether the expression is used only up to proportionality or for a fully normalised density.
+
+\section{Risk estimation}
+
+For a target covariate vector $x_\star$, define the risk under the new-data model as
+\[
+\omega_\star=\Pr(Y_\star=1\mid x_\star,\theta)
+=\sigma(x_\star^\top\theta).
+\]
+The posterior distribution of the risk is induced by the joint posterior:
+\begin{align}
+p(\omega_\star\mid D_{\mathrm{old}},D_{\mathrm{new}},x_\star)
+=\int &\delta\!\left(\omega_\star-\sigma(x_\star^\top\theta)\right)\\
+&\times p(\beta,\theta,\tau\mid D_{\mathrm{old}},D_{\mathrm{new}})
+\,d\beta\,d\theta\,d\tau,
+\end{align}
+where $\delta(\cdot)$ is the Dirac delta distribution. Equivalently, draw $(\beta^{(s)},\theta^{(s)},\tau^{(s)})$ from the joint posterior and calculate
+\[
+\omega_\star^{(s)}=\sigma(x_\star^\top\theta^{(s)}).
+\]
+The posterior draws $\{\omega_\star^{(s)}\}_{s=1}^S$ provide a posterior mean or median and credible intervals for the risk.
+
+\section{Comparison with the two-stage approximation}
+
+A two-stage approach may fit the old model first, then use a point estimate such as $\widehat\beta$ as fixed input to the new-stage model. This can omit uncertainty in the old-stage estimate. The joint model instead integrates over uncertainty in $\beta$ and any hyperparameters, conditional on the specified model.
+
+To compare the approaches fairly, evaluate both on the same held-out observations or cross-validation splits. Possible metrics include calibration, Brier score, predictive log score, and the coverage and width of predictive or credible intervals. The comparison should distinguish predictive accuracy from uncertainty calibration.
+
+\section{Assumptions to verify before using this model}
+
+\begin{enumerate}[label=\arabic*.]
+  \item The outcomes and predictors are correctly defined for both datasets.
+  \item The two likelihoods are appropriate and the datasets can be treated as conditionally independent, or their dependence is explicitly modelled.
+  \item The relationship $\theta\mid\beta,\tau\sim\mathcal N(A\beta,\tau^2I)$ is scientifically justified, including the choice of $A$ and the scale parameter.
+  \item The priors are proper and suitable for the parameter scales.
+  \item Any systematic bias in the old model is represented explicitly if the scientific setup calls for it; a hierarchical prior does not automatically remove bias.
+  \item The target risk $\omega_\star$ corresponds to the intended population, outcome, and prediction time horizon.
+\end{enumerate}
+
+\end{document}
