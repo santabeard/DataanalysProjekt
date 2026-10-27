@@ -1,0 +1,7 @@
+Rank,Prediction model,Missing-data handling,AUC as recorded,"AUC, 50% more deleted",AUC drop,Log-loss as recorded,"Log-loss, 50% more deleted",Best or tied-with-best: as recorded,... 25% more deleted,... 50% more deleted,Calibration slope (1 = ideal),Key
+1,Bayesian logistic regression,Joint imputation + flags for which measurements are missing,0.787,0.738,-0.049,0.3832,0.4355,no,yes,no,0.98,B3
+2,Bayesian logistic regression,Joint imputation; missingness ignored,0.754,0.744,-0.011,0.4018,0.4069,no,yes,yes,1.10,B0
+3,Bayesian logistic regression,Joint imputation + separate measurement rule per ward,0.808,0.675,-0.134,0.3696,0.6300,yes,no,no,0.90,B2
+4,Bayesian logistic regression,Joint imputation + one hospital-wide measurement rule,0.799,0.688,-0.111,0.3773,0.5985,no,no,no,0.89,B1
+5,Bayesian logistic regression,"Joint imputation + per-ward rule, own-value effect shrunk",0.808,0.674,-0.134,0.3696,0.6314,yes,no,no,0.90,B5
+6,Bayesian logistic regression,Joint imputation + per-ward rule + flags,0.790,0.671,-0.119,0.3960,0.6723,no,no,no,0.67,B4

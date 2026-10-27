@@ -1,0 +1,8 @@
+VERDICT (lower log-loss = better predictions; ties judged by paired bootstrap over 1,500 held-out patients)
+
+As recorded: best = Bayes · per-ward rule (log-loss 0.3696, AUC 0.808). Statistically tied: Bayes · per-ward rule, shrunk.
+25% more deleted: best = Bayes · ignore missingness (log-loss 0.4054, AUC 0.747). Statistically tied: Bayes · missing-flags.
+50% more deleted: best = Bayes · ignore missingness (log-loss 0.4069, AUC 0.744). No other model is tied with it.
+
+Best overall (average rank across the three situations): Bayes · missing-flags.
+Best Bayesian combination: Bayes · missing-flags (overall rank 1 of 6).
