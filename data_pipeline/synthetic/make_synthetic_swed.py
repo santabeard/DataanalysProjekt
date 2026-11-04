@@ -13,8 +13,8 @@ Every target comes from "Synthetic SWED Parquet files: LLM instructions"
 files. Values the profile did not contain are marked ASSUMPTION and kept as
 named constants below.
 
-    uv run --with numpy --with pyarrow python make_synthetic_swed.py --n-persons 100000
-    uv run --with numpy --with pyarrow python make_synthetic_swed.py --n-persons 100000 --validate
+    uv run --with numpy --with pyarrow python synthetic/make_synthetic_swed.py --n-persons 100000            # from data_pipeline/
+    uv run --with numpy --with pyarrow python synthetic/make_synthetic_swed.py --n-persons 100000 --validate
 """
 
 from __future__ import annotations
