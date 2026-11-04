@@ -9,6 +9,15 @@ The full SWED files on Bianca are too big to iterate on quickly. The plan:
 
 Code developed on the synthetic data runs unchanged on the real build, because the synthetic files copy its file names, columns and types.
 
+## Folder layout
+
+| Where | What |
+|---|---|
+| `01`–`07` `*.py` / `*.sbatch`, `build_and_stats.sbatch`, `check_env.py` | The pipeline, flat as in `scripts/` on Bianca: subset, build, export stats, synthesize, then the models (`05` atlas + vitals, `06` joint hierarchical, `07` five-model comparison). Each sbatch file sits next to its script. |
+| `data_info/` | Documentation of the real data: variable lists, the column profile, lab/SNOMED mappings. Not in git. |
+| `notebooks/` | `swed_tasks.ipynb` (supervisor's tasks; run from the folder holding `data_info/` and `out/`) and `explore_built.ipynb` (a look at `built_subset/`). |
+| `synthetic/` | Synthetic-data generators and their output: `synth_subset_5k.py` / `synth_subset_50k.py` (fake `subset/` with made-up names, for running `02` onwards locally), `make_synthetic_swed.py` (older raw-extract generator) and its spec. Run them from `data_pipeline/`. |
+
 ## Supervisor's tasks and where they stand
 
 | Task | Status |
