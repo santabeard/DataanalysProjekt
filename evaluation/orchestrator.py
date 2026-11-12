@@ -139,79 +139,6 @@ def _average_predictions(per_imputation: list[dict[str, np.ndarray]]) -> dict[st
     return out
 
 
-def _reliability(split: Split, predictions: dict[str, np.ndarray], path: Path) -> None:
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots(figsize=(6, 5))
-    for name, p in predictions.items():
-        q = pd.qcut(pd.Series(p).rank(method="first"), 10, labels=False)
-        df = pd.DataFrame({"p": p, "y": split.y, "q": q})
-        g = df.groupby("q").agg(pred=("p", "mean"), obs=("y", "mean"))
-        ax.plot(g["pred"], g["obs"], marker="o", label=name)
-    lo = min(0.0, float(min(p.min() for p in predictions.values())))
-    hi = max(0.05, float(max(p.max() for p in predictions.values())))
-    ax.plot([lo, hi], [lo, hi], "k--", linewidth=1, label="ideal")
-    ax.set_xlabel("Mean predicted risk")
-    ax.set_ylabel("Observed rate")
-    ax.set_title("Reliability (test, deciles)")
-    ax.legend(fontsize=7)
-    fig.tight_layout()
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-
-
-def _risk_distribution(predictions: dict[str, np.ndarray], path: Path) -> None:
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    bins = np.linspace(0, max(0.05, max(p.max() for p in predictions.values())), 30)
-    for name, p in predictions.items():
-        ax.hist(p, bins=bins, histtype="step", density=True, label=name)
-    ax.set_xlabel("Predicted 30-day mortality")
-    ax.set_ylabel("Density")
-    ax.set_title("Risk distribution (test)")
-    ax.legend(fontsize=7)
-    fig.tight_layout()
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-
-
-def _decision_curve(split: Split, predictions: dict[str, np.ndarray], path: Path) -> None:
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    thresholds = np.linspace(0.001, 0.10, 60)
-    n = len(split.y)
-    prev = float(split.y.mean())
-    fig, ax = plt.subplots(figsize=(6, 4))
-    for name, p in predictions.items():
-        nb = []
-        for t in thresholds:
-            pos = p >= t
-            tp = float(np.sum(pos & (split.y == 1)))
-            fp = float(np.sum(pos & (split.y == 0)))
-            nb.append(tp / n - fp / n * (t / (1 - t)))
-        ax.plot(thresholds, nb, label=name)
-    treat_all = prev - (1 - prev) * (thresholds / (1 - thresholds))
-    ax.plot(thresholds, treat_all, "k--", linewidth=1, label="treat all")
-    ax.axhline(0, color="grey", linewidth=0.5)
-    ax.set_xlabel("Threshold probability")
-    ax.set_ylabel("Net benefit")
-    ax.set_title("Decision curve (test)")
-    ax.legend(fontsize=7)
-    fig.tight_layout()
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-
-
 def _verdict(
     split: Split,
     predictions: dict[str, np.ndarray],
@@ -318,6 +245,19 @@ def _write_summary(
         )
         lines += [mm.round(5).to_markdown(), ""]
     lines += [
+        "## Figures",
+        "",
+        "- `figures/roc_curves.png` — micro discrimination (AUROC per model).",
+        "- `figures/precision_recall.png` — precision/recall, more informative for a ~1.5% outcome.",
+        "- `figures/calibration.png` — decile calibration with 95% Wilson intervals.",
+        "- `figures/forest_vs_M_direct.png` — paired bootstrap differences in log-loss and Brier vs `M_direct`.",
+        "- `figures/decision_curve.png` — net benefit across decision thresholds.",
+        "- `figures/hospital_auc_heatmap.png` — per-hospital AUROC heterogeneity.",
+        "- `figures/missingness_heatmap.png` — `P(vital observed)` by hospital × vital.",
+        "- `figures/missingness_scoreboard_heatmap.png` — missingness strategy × model log-loss.",
+        "- `figures/kappa_sensitivity.png` — O:E and BSS under the kappa shift (κ<0 shaded).",
+        "- `figures/vital_coefficients.png` — fitted vital `(z, z², mask)` coefficients across A/B/C/`M_direct`.",
+        "",
         "## Limitations",
         "",
         "- Synthetic SWED data validates code and workflow, not clinical conclusions.",
@@ -497,9 +437,9 @@ def main(argv: list[str] | None = None) -> None:
     (out / "verdict.txt").write_text(verdict)
 
     if not args.no_figures:
-        _reliability(test, predictions, out / "figures" / "reliability.png")
-        _risk_distribution(predictions, out / "figures" / "risk_distribution.png")
-        _decision_curve(test, predictions, out / "figures" / "decision_curve.png")
+        from evaluation.plots import make_all
+
+        make_all(out, cohort=cohort)
 
     config = {
         "built": str(args.built),
