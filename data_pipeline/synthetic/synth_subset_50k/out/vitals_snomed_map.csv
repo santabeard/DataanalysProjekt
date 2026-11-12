@@ -1,0 +1,8 @@
+term_name,concept
+V1,systolic_bp
+V2,diastolic_bp
+V3,spo2
+V4,resp_rate
+V5,body_temp
+V6,pulse_rate
+V7,consciousness

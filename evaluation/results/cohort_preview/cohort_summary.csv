@@ -1,0 +1,4 @@
+split,visits,patients,deaths,prevalence,hospitals,vital_observed_pct
+old,71170,20000,1030,0.0145,12,"{'sbp': 0.227, 'pulse': 0.169, 'rr': 0.201, 'spo2': 0.214, 'temp': 0.202}"
+new,70450,20000,1030,0.0146,12,"{'sbp': 0.228, 'pulse': 0.168, 'rr': 0.202, 'spo2': 0.215, 'temp': 0.202}"
+test,35660,10000,545,0.0153,12,"{'sbp': 0.226, 'pulse': 0.168, 'rr': 0.2, 'spo2': 0.214, 'temp': 0.2}"
