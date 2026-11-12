@@ -1,0 +1,90 @@
+{
+  "built": "data_pipeline/synthetic/built_synth_subset_50k",
+  "seed": 42,
+  "split": {
+    "old": 0.4,
+    "new": 0.4,
+    "test": 0.2
+  },
+  "top_complaints": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "scaling": {
+    "age": {
+      "mean": 58.25086412814388,
+      "sd": 21.857544204260215
+    },
+    "vitals": {
+      "sbp": {
+        "mean": 134.60372771474877,
+        "sd": 21.81947544299749
+      },
+      "pulse": {
+        "mean": 84.26828446241996,
+        "sd": 16.985555091173126
+      },
+      "rr": {
+        "mean": 17.149443896944952,
+        "sd": 4.039277546861146
+      },
+      "spo2": {
+        "mean": 96.35033068783069,
+        "sd": 2.389202152954506
+      },
+      "temp": {
+        "mean": 36.92005212001692,
+        "sd": 0.6043802385109723
+      }
+    }
+  },
+  "counts_rounded_to": 5,
+  "min_cell": 10,
+  "splits": {
+    "old": {
+      "visits": 71170,
+      "patients": 20000,
+      "deaths": 1030,
+      "prevalence": 0.0145,
+      "vital_observed_pct": {
+        "sbp": 0.227,
+        "pulse": 0.169,
+        "rr": 0.201,
+        "spo2": 0.214,
+        "temp": 0.202
+      }
+    },
+    "new": {
+      "visits": 70450,
+      "patients": 20000,
+      "deaths": 1030,
+      "prevalence": 0.0146,
+      "vital_observed_pct": {
+        "sbp": 0.228,
+        "pulse": 0.168,
+        "rr": 0.202,
+        "spo2": 0.215,
+        "temp": 0.202
+      }
+    },
+    "test": {
+      "visits": 35660,
+      "patients": 10000,
+      "deaths": 545,
+      "prevalence": 0.0153,
+      "vital_observed_pct": {
+        "sbp": 0.226,
+        "pulse": 0.168,
+        "rr": 0.2,
+        "spo2": 0.214,
+        "temp": 0.2
+      }
+    }
+  }
+}

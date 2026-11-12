@@ -118,8 +118,9 @@ def _base_design(split: Split) -> tuple[np.ndarray, None]:
     return _with_intercept(split.X_base), None
 
 
-def _vitals(split: Split) -> np.ndarray:
-    return _with_intercept(split.V)
+def vital_features(split: Split) -> np.ndarray:
+    """Vital design ``(z, z**2)`` plus the observation mask (median + mask)."""
+    return np.column_stack([split.V, split.R])
 
 
 def _isotropic(k: int) -> tuple[np.ndarray, np.ndarray]:
@@ -150,11 +151,12 @@ def fit_strategy_a(cohort: Cohort, ref: LaplaceModel | None = None) -> LaplaceMo
     ref = ref or fit_m_ref(cohort)
     new = cohort["new"]
     s_new = _ref_offset(ref, new)
-    mu, P = _isotropic(new.V.shape[1])
-    theta, cov = fit_map_logistic(new.V, new.y, mu, P, offset=s_new)
+    V_new = vital_features(new)
+    mu, P = _isotropic(V_new.shape[1])
+    theta, cov = fit_map_logistic(V_new, new.y, mu, P, offset=s_new)
 
     def design(split: Split) -> tuple[np.ndarray, np.ndarray]:
-        return split.V, _ref_offset(ref, split)
+        return vital_features(split), _ref_offset(ref, split)
 
     return LaplaceModel("A", theta, cov, design)
 
@@ -163,14 +165,15 @@ def fit_strategy_b(cohort: Cohort, ref: LaplaceModel | None = None) -> LaplaceMo
     ref = ref or fit_m_ref(cohort)
     new = cohort["new"]
     s_new = _ref_offset(ref, new)
-    Z = np.column_stack([np.ones(len(new.y)), s_new, new.V])
-    mu = np.r_[0.0, 1.0, np.zeros(new.V.shape[1])]
+    V_new = vital_features(new)
+    Z = np.column_stack([np.ones(len(new.y)), s_new, V_new])
+    mu = np.r_[0.0, 1.0, np.zeros(V_new.shape[1])]
     P = np.eye(Z.shape[1])
     theta, cov = fit_map_logistic(Z, new.y, mu, P)
 
     def design(split: Split) -> tuple[np.ndarray, None]:
         s = _ref_offset(ref, split)
-        return np.column_stack([np.ones(len(s)), s, split.V]), None
+        return np.column_stack([np.ones(len(s)), s, vital_features(split)]), None
 
     return LaplaceModel("B", theta, cov, design)
 
@@ -178,9 +181,10 @@ def fit_strategy_b(cohort: Cohort, ref: LaplaceModel | None = None) -> LaplaceMo
 def fit_strategy_c(cohort: Cohort, ref: LaplaceModel | None = None) -> LaplaceModel:
     ref = ref or fit_m_ref(cohort)
     new = cohort["new"]
-    Z = np.column_stack([np.ones(len(new.y)), new.X_base, new.V])
+    V_new = vital_features(new)
+    Z = np.column_stack([np.ones(len(new.y)), new.X_base, V_new])
     k_base = ref.n_params
-    k_vit = new.V.shape[1]
+    k_vit = V_new.shape[1]
     mu = np.r_[ref.theta, np.zeros(k_vit)]
     P = np.zeros((k_base + k_vit, k_base + k_vit))
     P[:k_base, :k_base] = np.linalg.pinv(ref.cov, hermitian=True)
@@ -188,19 +192,19 @@ def fit_strategy_c(cohort: Cohort, ref: LaplaceModel | None = None) -> LaplaceMo
     theta, cov = fit_map_logistic(Z, new.y, mu, P)
 
     def design(split: Split) -> tuple[np.ndarray, None]:
-        return np.column_stack([np.ones(len(split.y)), split.X_base, split.V]), None
+        return np.column_stack([np.ones(len(split.y)), split.X_base, vital_features(split)]), None
 
     return LaplaceModel("C", theta, cov, design)
 
 
 def fit_m_direct(cohort: Cohort) -> LaplaceModel:
     new = cohort["new"]
-    Z = np.column_stack([np.ones(len(new.y)), new.X_base, new.V])
+    Z = np.column_stack([np.ones(len(new.y)), new.X_base, vital_features(new)])
     mu, P = _isotropic(Z.shape[1])
     theta, cov = fit_map_logistic(Z, new.y, mu, P)
 
     def design(split: Split) -> tuple[np.ndarray, None]:
-        return np.column_stack([np.ones(len(split.y)), split.X_base, split.V]), None
+        return np.column_stack([np.ones(len(split.y)), split.X_base, vital_features(split)]), None
 
     return LaplaceModel("M_direct", theta, cov, design)
 

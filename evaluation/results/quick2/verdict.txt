@@ -1,0 +1,9 @@
+VERDICT (lower log-loss is better; paired patient bootstrap, 95% CI)
+test visits: 35660, deaths: 545
+
+C         log-loss 0.06613  (best)
+M_direct  log-loss 0.06616  diff vs best -0.00003 [-0.00010, +0.00005]  statistically tied with best
+A         log-loss 0.06619  diff vs best -0.00005 [-0.00012, +0.00002]  statistically tied with best
+B         log-loss 0.06619  diff vs best -0.00006 [-0.00016, +0.00000]  statistically tied with best
+M_base    log-loss 0.07014  diff vs best -0.00400 [-0.00480, -0.00261]  best is better
+M_ref     log-loss 0.07022  diff vs best -0.00409 [-0.00485, -0.00271]  best is better

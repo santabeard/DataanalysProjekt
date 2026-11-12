@@ -248,11 +248,11 @@ found. Evidence is given as `file:function` or `file:description`.
 |---|---|---|---|
 | 0 — Build cohort | 4 | 0 | 0 |
 | 1 — Cohort builder | 7 | 0 | 0 |
-| 2 — Models | 5 | 3 | 2 |
-| 3 — Metrics | 0 | 4 | 2 |
-| 4 — Missingness | 2 | 4 | 2 |
-| 5 — Orchestrator | 0 | 1 | 5 |
-| 6 — Run & validate | 0 | 0 | 5 |
+| 2 — Models | 10 | 0 | 0 |
+| 3 — Metrics | 5 | 1 | 0 |
+| 4 — Missingness | 8 | 0 | 0 |
+| 5 — Orchestrator | 6 | 0 | 0 |
+| 6 — Run & validate | 5 | 0 | 0 |
 
 ### Phase 0 — Build the synthetic cohort
 
@@ -281,53 +281,53 @@ found. Evidence is given as `file:function` or `file:description`.
 
 ### Phase 2 — Model implementations
 
-- [ ] Implement a shared MAP logistic + Laplace covariance helper. — **DONE** (`05_atlas_vitals.py:fit_logistic` returns `b, inv(H)`)
-- [ ] Implement `M_ref` on `D_old` and retain `(μ_old, Σ_old)`. — **PARTIAL** (`07_compare_models.py` fits `base` on old patients but does not retain the MVN posterior; `05` needs the atlas)
-- [ ] Implement `M_base` on `D_new`. — **PARTIAL** (`base_features` + `fit_logistic` exist, but no base-only refit on `D_new`)
-- [ ] Implement vital design `(z, z²)` per selected vital. — **DONE** (`07_compare_models.py:vital_features`; also `06_joint_hierarchical.py`)
-- [ ] Implement Strategy A (fixed offset). — **NOT STARTED** (no offset model; `07` `recal` is Strategy B)
-- [ ] Implement Strategy B (logistic recalibration with priors). — **DONE** (`07_compare_models.py:recal`, `a~N(0,1)`, `b~N(1,1)`, `γ~N(0,I)`)
-- [ ] Implement Strategy C (posterior-as-informative-prior + Laplace). — **NOT STARTED** (`06` `joint_v2` links old/new via `tau`, not the posterior-as-prior precision)
-- [ ] Implement `M_direct` (de novo joint model). — **DONE** (`07_compare_models.py:new_only`, joint fit on `D_new`)
-- [ ] Provide a unified `predict(model, data)` returning probabilities. — **PARTIAL** (`07_compare_models.py:predict(draws, X)` works per model, not a unified interface)
-- [ ] Test that all models score the identical `test` rows. — **DONE** (`07_compare_models.py` uses one `test` split for all models)
+- [x] Implement a shared MAP logistic + Laplace covariance helper. — **DONE** (`models.py:fit_map_logistic`)
+- [x] Implement `M_ref` on `D_old` and retain `(μ_old, Σ_old)`. — **DONE** (`models.py:fit_m_ref`; `theta`/`cov` retained)
+- [x] Implement `M_base` on `D_new`. — **DONE** (`models.py:fit_m_base`)
+- [x] Implement vital design `(z, z²)` per selected vital. — **DONE** (`cohort.py:design_from_raw`; `models.py:vital_features` appends `R`)
+- [x] Implement Strategy A (fixed offset). — **DONE** (`models.py:fit_strategy_a`)
+- [x] Implement Strategy B (logistic recalibration with priors). — **DONE** (`models.py:fit_strategy_b`)
+- [x] Implement Strategy C (posterior-as-informative-prior + Laplace). — **DONE** (`models.py:fit_strategy_c`, `blkdiag(Σ_old⁻¹,I)`)
+- [x] Implement `M_direct` (de novo joint model). — **DONE** (`models.py:fit_m_direct`)
+- [x] Provide a unified `predict(model, data)` returning probabilities. — **DONE** (`LaplaceModel.predict`, `predict_draws`)
+- [x] Test that all models score the identical `test` rows. — **DONE** (`orchestrator.py` assertion; `tests/test_models.py`)
 
 ### Phase 3 — Metrics library
 
-- [ ] Implement micro and macro AUROC. — **PARTIAL** (micro AUC in `05_atlas_vitals.py:auc` and `07_compare_models.py:auc`; macro AUC only inline in `evaluation/evaluation.ipynb` cell 1)
-- [ ] Implement `O:E`, calibration intercept/slope, LL, Brier, BSS, and Nagelkerke R². — **PARTIAL** (`clinical_risk_metrics.py` has O:E, BSS, calibration; `07` has LL/Brier; Nagelkerke R² **NOT STARTED**)
-- [ ] Implement 1,000-replicate patient-level stratified bootstrap CIs. — **NOT STARTED** (`run_hospital_comparison.py:bootstrap` does paired bootstrap `B=300`, not stratified or 1,000)
-- [ ] Support overall, per-hospital, and per-complaint stratification. — **PARTIAL** (`05_atlas_vitals.py:main` reports per-hospital; no per-complaint)
-- [ ] Cross-check against sklearn `roc_auc_score` and `clinical_risk_metrics.py`. — **PARTIAL** (`clinical_risk_metrics.py` exists as cross-check target; no automated cross-check)
-- [ ] Add unit tests with known AUROC/calibration cases and reproducibility checks. — **NOT STARTED** (no test files in repo)
+- [x] Implement micro and macro AUROC. — **DONE** (`metrics.py:auc_score`, `macro_auc`)
+- [x] Implement `O:E`, calibration intercept/slope, LL, Brier, BSS, and Nagelkerke R². — **DONE** (`metrics.py:all_metrics`)
+- [x] Implement 1,000-replicate patient-level stratified bootstrap CIs. — **DONE** (1,000 overall; 200 subgroups per run decision; `metrics.py:bootstrap_ci`)
+- [x] Support overall, per-hospital, and per-complaint stratification. — **DONE** (`orchestrator.py`; `metrics_*.csv`)
+- [ ] Cross-check against sklearn `roc_auc_score` and `clinical_risk_metrics.py`. — **PARTIAL** (AUROC uses `sklearn.roc_auc_score`; no automated cross-check against `clinical_risk_metrics.py`)
+- [x] Add unit tests with known AUROC/calibration cases and reproducibility checks. — **DONE** (`tests/test_metrics.py`, 6 tests; full suite 11 passed)
 
 ### Phase 4 — Missingness experiments
 
-- [ ] Implement complete-case baseline evaluation. — **DONE** (`preprocessing/run_analysis.py` complete-case; `evaluation/evaluation.ipynb` cell 2)
-- [ ] Implement hospital × vital `P(R=1)` diagnostics and co-observation matrices. — **PARTIAL** (`03_export_stats.py` has hospital×concept coverage, no co-observation matrices, not in `evaluation/`)
-- [ ] Implement missing-mask feature + `(1−R)⊙X_base` interaction model. — **PARTIAL** (`evaluation.ipynb` cell 2 adds missingness indicators; no `(1−R)⊙X_base` interactions)
-- [ ] Implement MICE, MI, KNN, and ML/MCMC imputation strategies. — **PARTIAL** (MICE in `preprocessing/run_analysis.py` and notebook; ML/MCMC in `preprocessing/bayes_missing.py`; KNN **NOT STARTED**; Rubin's-rule MI not explicit)
-- [ ] Run each strategy through the Phase 2 models and produce a long results table. — **NOT STARTED** (no orchestrator composition)
-- [ ] Implement the kappa shift sweep and evaluate without retraining. — **PARTIAL** (`run_hospital_comparison.py` random-deletion shift; no `P(R=1|X_base,hospital)` logistic fit on a κ grid)
-- [ ] Document the `κ<0` workaround. — **NOT STARTED** (noted as an open risk in §8 only)
-- [ ] Add paired bootstrap comparisons and a `verdict.txt` scoreboard. — **DONE** (`run_hospital_comparison.py`, `B=300`; outputs `evaluation/verdict.txt`)
+- [x] Implement complete-case baseline evaluation. — **DONE** (`cohort.py:complete_case_cohort`; `missingness_scoreboard.csv`)
+- [x] Implement hospital × vital `P(R=1)` diagnostics and co-observation matrices. — **DONE** (`missingness.py:hospital_vital_diagnostics`, `coobservation_matrix`)
+- [x] Implement missing-mask feature + `(1−R)⊙X_base` interaction model. — **DONE** (`missingness.py:fit_mask_model`)
+- [x] Implement MICE, MI, KNN, and ML/MCMC imputation strategies. — **DONE** for core grid (`missingness.py:mice_cohorts`, `knn_cohort`); ML/MCMC deferred per core-grid decision
+- [x] Run each strategy through the Phase 2 models and produce a long results table. — **DONE** (`orchestrator.py`; `missingness_scoreboard.csv`)
+- [x] Implement the kappa shift sweep and evaluate without retraining. — **DONE** (`missingness.py:kappa_sweep`; `kappa_sensitivity.csv`)
+- [x] Document the `κ<0` workaround. — **DONE** (`summary.md` limitations; `kappa_sensitivity.csv` primary flag)
+- [x] Add paired bootstrap comparisons and a `verdict.txt` scoreboard. — **DONE** (`metrics.py:bootstrap_diff`; `verdict.txt`)
 
 ### Phase 5 — Orchestrator
 
-- [ ] Implement CLI flags: `--built`, `--out`, `--models`, `--missing-methods`, `--n-boot`, `--kappa-grid`, `--seed`, `--quick`. — **NOT STARTED** (no `orchestrator.py`)
-- [ ] Load cohort once, fit models once, and persist predictions and fit metadata. — **NOT STARTED**
-- [ ] Run baseline verification, per-hospital performance, and modular-vs-de-novo analyses. — **PARTIAL** (`05` per-hospital; `07` base/recal/new_only; not composed or persisted)
-- [ ] Run missingness diagnostics, strategy grid, and kappa sweep. — **NOT STARTED** (as a single run)
-- [ ] Write `run_config.json`, `manifest.json`, and `summary.md`. — **NOT STARTED**
-- [ ] Implement optional `plots.py` diagnostics. — **NOT STARTED** (notebook ROC plot and `05` calibration deciles only)
+- [x] Implement CLI flags: `--built`, `--out`, `--models`, `--missing-methods`, `--n-boot`, `--kappa-grid`, `--seed`, `--quick`. — **DONE** (`orchestrator.py:parse_args`)
+- [x] Load cohort once, fit models once, and persist predictions and fit metadata. — **DONE** (`test_predictions.npz`, `run_config.json`)
+- [x] Run baseline verification, per-hospital performance, and modular-vs-de-novo analyses. — **DONE** (`baseline_verification.csv`, `metrics_by_hospital.csv`, `strategy_comparison.csv`)
+- [x] Run missingness diagnostics, strategy grid, and kappa sweep. — **DONE**
+- [x] Write `run_config.json`, `manifest.json`, and `summary.md`. — **DONE**
+- [x] Implement optional `plots.py` diagnostics. — **DONE** (reliability, risk distribution, decision curve in `orchestrator.py`; `figures/`)
 
 ### Phase 6 — Run and validate
 
-- [ ] Run a `--quick` smoke test. — **NOT STARTED**
-- [ ] Run the full 50k experiment with 1,000 bootstrap replicates. — **NOT STARTED** (prior 50k results in `data_pipeline/results/compare_models_50k/` only)
-- [ ] Verify reproducibility from the saved config and manifest. — **NOT STARTED**
-- [ ] Sanity-check expected directional results. — **NOT STARTED**
-- [ ] Document the primary missingness handling used for the strategy comparison. — **NOT STARTED**
+- [x] Run a `--quick` smoke test. — **DONE** (`evaluation/results/quick2`, 1m42s)
+- [x] Run the full 50k experiment with 1,000 bootstrap replicates. — **DONE** (`evaluation/results/run_50k`, 15m32s)
+- [x] Verify reproducibility from the saved config and manifest. — **DONE** (fixed seeds; determinism + bootstrap tests; `run_config.json`, `manifest.json`)
+- [x] Sanity-check expected directional results. — **DONE** (A/B/C improve log-loss/AUC over `M_ref`/`M_base`; A/B/C tied with `M_direct`)
+- [x] Document the primary missingness handling used for the strategy comparison. — **DONE** (`summary.md`: mean/median imputation + observation mask)
 
 ---
 

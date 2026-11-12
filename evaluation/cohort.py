@@ -44,6 +44,7 @@ class Split:
     V: np.ndarray
     R: np.ndarray
     y: np.ndarray
+    raw: np.ndarray
 
 
 @dataclass
@@ -199,6 +200,7 @@ def load_cohort(
             V=V,
             R=R[idx],
             y=d["died30"].to_numpy(dtype=float),
+            raw=raw[idx],
         )
 
     scaling = {
@@ -215,6 +217,82 @@ def load_cohort(
         vital_names=list(VITALS),
         complaints=complaints,
         scaling=scaling,
+    )
+
+
+def vital_mean_sd(cohort: Cohort) -> tuple[np.ndarray, np.ndarray]:
+    mean = np.array([cohort.scaling["vitals"][v]["mean"] for v in cohort.vital_names])
+    sd = np.array([cohort.scaling["vitals"][v]["sd"] for v in cohort.vital_names])
+    return mean, sd
+
+
+def design_from_raw(
+    raw: np.ndarray,
+    mean: np.ndarray,
+    sd: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build ``(z, z**2)`` and the observation mask from raw vital columns."""
+    R = (~np.isnan(raw)).astype(float)
+    z = (raw - mean) / sd
+    z = np.where(np.isnan(z), 0.0, z)
+    V = np.column_stack([z, z**2])
+    return V, R
+
+
+def subset_split(split: Split, idx: np.ndarray) -> Split:
+    idx = np.asarray(idx)
+    return Split(
+        visits=split.visits.iloc[idx].reset_index(drop=True),
+        X_base=split.X_base[idx],
+        V=split.V[idx],
+        R=split.R[idx],
+        y=split.y[idx],
+        raw=split.raw[idx],
+    )
+
+
+def with_raw(
+    cohort: Cohort,
+    raw_by_split: dict[str, np.ndarray],
+    preserve_mask: bool = False,
+) -> Cohort:
+    """Return a cohort whose vital designs are rebuilt from imputed raw values."""
+    mean, sd = vital_mean_sd(cohort)
+    splits = {}
+    for name, split in cohort.splits.items():
+        V, R = design_from_raw(raw_by_split[name], mean, sd)
+        if preserve_mask:
+            R = split.R
+        splits[name] = Split(
+            visits=split.visits,
+            X_base=split.X_base,
+            V=V,
+            R=R,
+            y=split.y,
+            raw=raw_by_split[name],
+        )
+    return Cohort(
+        splits=splits,
+        base_feature_names=cohort.base_feature_names,
+        vital_feature_names=cohort.vital_feature_names,
+        vital_names=cohort.vital_names,
+        complaints=cohort.complaints,
+        scaling=cohort.scaling,
+    )
+
+
+def complete_case_cohort(cohort: Cohort) -> Cohort:
+    splits = {}
+    for name, split in cohort.splits.items():
+        keep = np.flatnonzero(split.R.all(axis=1))
+        splits[name] = subset_split(split, keep)
+    return Cohort(
+        splits=splits,
+        base_feature_names=cohort.base_feature_names,
+        vital_feature_names=cohort.vital_feature_names,
+        vital_names=cohort.vital_names,
+        complaints=cohort.complaints,
+        scaling=cohort.scaling,
     )
 
 

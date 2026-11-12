@@ -1,0 +1,122 @@
+{
+  "created_utc": "2026-11-12T12:30:21.481717+00:00",
+  "built": "data_pipeline/synthetic/built_synth_subset_50k",
+  "python": "3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 21:00:12) [Clang 16.0.6 ]",
+  "platform": "macOS-15.7.9-x86_64-i386-64bit",
+  "args": {
+    "built": "data_pipeline/synthetic/built_synth_subset_50k",
+    "out": "evaluation/results/run_50k",
+    "models": [
+      "M_ref",
+      "M_base",
+      "A",
+      "B",
+      "C",
+      "M_direct"
+    ],
+    "missing_methods": [
+      "median",
+      "knn",
+      "mice"
+    ],
+    "n_boot": 1000,
+    "n_boot_subgroup": 200,
+    "n_boot_kappa": 0,
+    "mice_m": 5,
+    "kappa_grid": "auto",
+    "kappa_max": 2.5,
+    "kappa_step": 0.5,
+    "min_events": 10,
+    "seed": 42,
+    "quick": false,
+    "no_figures": false
+  },
+  "kappa_grid": [
+    -2.5,
+    -2.0,
+    -1.5,
+    -1.0,
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5
+  ],
+  "files": [
+    {
+      "path": "baseline_verification.csv",
+      "bytes": 2109
+    },
+    {
+      "path": "cohort_summary.csv",
+      "bytes": 386
+    },
+    {
+      "path": "coobservation_matrix.csv",
+      "bytes": 147
+    },
+    {
+      "path": "figures/decision_curve.png",
+      "bytes": 50970
+    },
+    {
+      "path": "figures/reliability.png",
+      "bytes": 49822
+    },
+    {
+      "path": "figures/risk_distribution.png",
+      "bytes": 29729
+    },
+    {
+      "path": "kappa_sensitivity.csv",
+      "bytes": 7338
+    },
+    {
+      "path": "metrics_by_complaint.csv",
+      "bytes": 57893
+    },
+    {
+      "path": "metrics_by_hospital.csv",
+      "bytes": 54493
+    },
+    {
+      "path": "metrics_overall.csv",
+      "bytes": 4516
+    },
+    {
+      "path": "missingness_diagnostics.csv",
+      "bytes": 5669
+    },
+    {
+      "path": "missingness_scoreboard.csv",
+      "bytes": 26127
+    },
+    {
+      "path": "run_config.json",
+      "bytes": 1430
+    },
+    {
+      "path": "split_manifest.json",
+      "bytes": 1690
+    },
+    {
+      "path": "strategy_comparison.csv",
+      "bytes": 3709
+    },
+    {
+      "path": "summary.md",
+      "bytes": 3007
+    },
+    {
+      "path": "test_predictions.npz",
+      "bytes": 856902
+    },
+    {
+      "path": "verdict.txt",
+      "bytes": 614
+    }
+  ],
+  "git_commit": "64ccf3e7e0dab1105f63ed2dcbbf1c53ca34ea7f"
+}

@@ -1,0 +1,110 @@
+{
+  "created_utc": "2026-11-12T12:14:32.835137+00:00",
+  "built": "data_pipeline/synthetic/built_synth_subset_50k",
+  "python": "3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 21:00:12) [Clang 16.0.6 ]",
+  "platform": "macOS-15.7.9-x86_64-i386-64bit",
+  "args": {
+    "built": "data_pipeline/synthetic/built_synth_subset_50k",
+    "out": "evaluation/results/quick2",
+    "models": [
+      "M_ref",
+      "M_base",
+      "A",
+      "B",
+      "C",
+      "M_direct"
+    ],
+    "missing_methods": [
+      "median",
+      "knn",
+      "mice"
+    ],
+    "n_boot": 50,
+    "n_boot_subgroup": 20,
+    "n_boot_kappa": 0,
+    "mice_m": 2,
+    "kappa_grid": "auto",
+    "kappa_max": 2.5,
+    "kappa_step": 0.5,
+    "min_events": 10,
+    "seed": 42,
+    "quick": true,
+    "no_figures": true
+  },
+  "kappa_grid": [
+    -2.5,
+    -2.0,
+    -1.5,
+    -1.0,
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5
+  ],
+  "files": [
+    {
+      "path": "baseline_verification.csv",
+      "bytes": 2099
+    },
+    {
+      "path": "cohort_summary.csv",
+      "bytes": 386
+    },
+    {
+      "path": "coobservation_matrix.csv",
+      "bytes": 147
+    },
+    {
+      "path": "kappa_sensitivity.csv",
+      "bytes": 7547
+    },
+    {
+      "path": "metrics_by_complaint.csv",
+      "bytes": 57880
+    },
+    {
+      "path": "metrics_by_hospital.csv",
+      "bytes": 54514
+    },
+    {
+      "path": "metrics_overall.csv",
+      "bytes": 4498
+    },
+    {
+      "path": "missingness_diagnostics.csv",
+      "bytes": 5669
+    },
+    {
+      "path": "missingness_scoreboard.csv",
+      "bytes": 26167
+    },
+    {
+      "path": "run_config.json",
+      "bytes": 1426
+    },
+    {
+      "path": "split_manifest.json",
+      "bytes": 1690
+    },
+    {
+      "path": "strategy_comparison.csv",
+      "bytes": 3703
+    },
+    {
+      "path": "summary.md",
+      "bytes": 2862
+    },
+    {
+      "path": "test_predictions.npz",
+      "bytes": 856902
+    },
+    {
+      "path": "verdict.txt",
+      "bytes": 614
+    }
+  ],
+  "git_commit": "64ccf3e7e0dab1105f63ed2dcbbf1c53ca34ea7f"
+}

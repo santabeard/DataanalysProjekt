@@ -1,0 +1,89 @@
+{
+  "built": "data_pipeline/synthetic/built_synth_subset_50k",
+  "seed": 42,
+  "models": [
+    "M_ref",
+    "M_base",
+    "A",
+    "B",
+    "C",
+    "M_direct"
+  ],
+  "missing_methods": [
+    "median",
+    "knn",
+    "mice"
+  ],
+  "n_boot": 1000,
+  "n_boot_subgroup": 200,
+  "n_boot_kappa": 0,
+  "mice_m": 5,
+  "kappa_grid": [
+    -2.5,
+    -2.0,
+    -1.5,
+    -1.0,
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5
+  ],
+  "min_events": 10,
+  "quick": false,
+  "split": "40/40/20 patients, seed 42",
+  "base_feature_names": [
+    "age",
+    "male",
+    "sct_1",
+    "sct_2",
+    "sct_3",
+    "sct_4",
+    "sct_5",
+    "sct_6",
+    "sct_7",
+    "sct_8"
+  ],
+  "vital_feature_names": [
+    "sbp_z",
+    "sbp_z2",
+    "pulse_z",
+    "pulse_z2",
+    "rr_z",
+    "rr_z2",
+    "spo2_z",
+    "spo2_z2",
+    "temp_z",
+    "temp_z2"
+  ],
+  "scaling": {
+    "age": {
+      "mean": 58.25086412814388,
+      "sd": 21.857544204260215
+    },
+    "vitals": {
+      "sbp": {
+        "mean": 134.60372771474877,
+        "sd": 21.81947544299749
+      },
+      "pulse": {
+        "mean": 84.26828446241996,
+        "sd": 16.985555091173126
+      },
+      "rr": {
+        "mean": 17.149443896944952,
+        "sd": 4.039277546861146
+      },
+      "spo2": {
+        "mean": 96.35033068783069,
+        "sd": 2.389202152954506
+      },
+      "temp": {
+        "mean": 36.92005212001692,
+        "sd": 0.6043802385109723
+      }
+    }
+  }
+}
