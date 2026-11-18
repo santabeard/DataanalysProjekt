@@ -210,6 +210,7 @@ def _write_summary(
     cohort: Cohort,
     overall: pd.DataFrame,
     missing: pd.DataFrame,
+    missing_complete: pd.DataFrame,
     verdict: str,
     args: argparse.Namespace,
 ) -> None:
@@ -244,12 +245,25 @@ def _write_summary(
             index="method", columns="model", values="value"
         )
         lines += [mm.round(5).to_markdown(), ""]
+    if not missing_complete.empty:
+        n_matched = int(missing_complete["n"].iloc[0])
+        lines += [
+            "## Matched complete-case test subset (log-loss)",
+            "",
+            f"All methods are scored on the same {round5(n_matched)} complete-case test rows "
+            "(`missingness_scoreboard_complete_subset.csv`).",
+            "",
+        ]
+        mc = missing_complete[missing_complete["metric"] == "log_loss"].pivot_table(
+            index="method", columns="model", values="value"
+        )
+        lines += [mc.round(5).to_markdown(), ""]
     lines += [
         "## Figures",
         "",
         "- `figures/roc_curves.png` — micro discrimination (AUROC per model).",
         "- `figures/precision_recall.png` — precision/recall, more informative for a ~1.5% outcome.",
-        "- `figures/calibration.png` — decile calibration with 95% Wilson intervals.",
+        "- `figures/calibration.png` — decile calibration; bars are 95% Wilson intervals, bands are patient-clustered bootstrap intervals.",
         "- `figures/forest_vs_M_direct.png` — paired bootstrap differences in log-loss and Brier vs `M_direct`.",
         "- `figures/decision_curve.png` — net benefit across decision thresholds.",
         "- `figures/hospital_auc_heatmap.png` — per-hospital AUROC heterogeneity.",
@@ -263,7 +277,7 @@ def _write_summary(
         "- Synthetic SWED data validates code and workflow, not clinical conclusions.",
         "- `kappa < 0` cannot unmask vitals that were never built; the primary sweep is `kappa >= 0`.",
         "- Complete-case uses visits with all five selected vitals observed.",
-        "- Complete-case metrics use a different (healthier, complete) test subset, so they are not directly comparable with the full-test scoreboard.",
+        "- Complete-case metrics in the main scoreboard use a different (healthier, complete) test subset; use `missingness_scoreboard_complete_subset.csv` for matched comparisons.",
         "- Primary comparison uses median/mean imputation + observation mask; other strategies are sensitivity analyses.",
         "- `report.tex` still uses the older `M0/M_base/M_modular/M_direct` taxonomy.",
         "",
@@ -394,9 +408,11 @@ def main(argv: list[str] | None = None) -> None:
 
     # Missingness scoreboard
     board = []
+    missing_predictions = {}
     tab = _evaluate(test, predictions, groups, args.n_boot_subgroup, args.min_events, args.seed)
     tab["method"] = "mean_mask"
     board.append(tab)
+    missing_predictions["mean_mask"] = predictions
     for method in args.missing_methods:
         variants = imputed_cohorts(cohort, method, m=args.mice_m, seed=args.seed)
         preds = [_fit_predict(c, args.models) for c in variants]
@@ -404,6 +420,7 @@ def main(argv: list[str] | None = None) -> None:
         tab = _evaluate(test, avg, groups, args.n_boot_subgroup, args.min_events, args.seed)
         tab["method"] = f"{method}_mask"
         board.append(tab)
+        missing_predictions[f"{method}_mask"] = avg
     cc = complete_case_cohort(cohort)
     if int(cc["new"].y.sum()) >= args.min_events:
         cc_pred = _fit_predict(cc, args.models)
@@ -417,13 +434,31 @@ def main(argv: list[str] | None = None) -> None:
         )
         tab["method"] = "complete_case"
         board.append(tab)
+        missing_predictions["complete_case"] = cc_pred
     mask_model = fit_mask_model(cohort, fit_m_ref(cohort))
     mask_pred = {"Mask": mask_model.predict(test)}
     tab = _evaluate(test, mask_pred, groups, args.n_boot_subgroup, args.min_events, args.seed)
     tab["method"] = "mask_interactions"
     board.append(tab)
+    missing_predictions["mask_interactions"] = mask_pred
     missing = pd.concat(board, ignore_index=True)
     missing.to_csv(out / "missingness_scoreboard.csv", index=False)
+
+    # Matched complete-case subset: every method scored on the same rows.
+    complete_rows = np.flatnonzero(test.R.all(axis=1))
+    matched = []
+    if len(complete_rows) >= args.min_events:
+        cc_groups = cc["test"].visits["complaint"].to_numpy()
+        for method, preds in missing_predictions.items():
+            if method == "complete_case":
+                sub = preds
+            else:
+                sub = {name: p[complete_rows] for name, p in preds.items()}
+            tab = _evaluate(cc["test"], sub, cc_groups, args.n_boot_subgroup, args.min_events, args.seed)
+            tab["method"] = method
+            matched.append(tab)
+    missing_complete = pd.concat(matched, ignore_index=True) if matched else pd.DataFrame()
+    missing_complete.to_csv(out / "missingness_scoreboard_complete_subset.csv", index=False)
 
     # Kappa sensitivity (primary sweep kappa >= 0)
     obs_model, _ = fit_observation_model(cohort)
@@ -459,7 +494,7 @@ def main(argv: list[str] | None = None) -> None:
         "scaling": cohort.scaling,
     }
     (out / "run_config.json").write_text(json.dumps(config, indent=2))
-    _write_summary(out, cohort, overall, missing, verdict, args)
+    _write_summary(out, cohort, overall, missing, missing_complete, verdict, args)
     _write_manifest(out, args.built, args)
 
     print(verdict)

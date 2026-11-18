@@ -299,11 +299,13 @@ found. Evidence is given as `file:function` or `file:description`.
 - [x] Implement 1,000-replicate patient-level stratified bootstrap CIs. — **DONE** (1,000 overall; 200 subgroups per run decision; `metrics.py:bootstrap_ci`)
 - [x] Support overall, per-hospital, and per-complaint stratification. — **DONE** (`orchestrator.py`; `metrics_*.csv`)
 - [ ] Cross-check against sklearn `roc_auc_score` and `clinical_risk_metrics.py`. — **PARTIAL** (AUROC uses `sklearn.roc_auc_score`; no automated cross-check against `clinical_risk_metrics.py`)
-- [x] Add unit tests with known AUROC/calibration cases and reproducibility checks. — **DONE** (`tests/test_metrics.py`, 6 tests; full suite 11 passed)
+- [x] Add unit tests with known AUROC/calibration cases and reproducibility checks. — **DONE** (`tests/test_metrics.py`, `tests/test_missingness.py`; full suite 15 passed)
+- [x] Add patient-clustered bootstrap intervals for decile calibration. — **DONE** (`metrics.py:calibration_table`; `plots.py:plot_calibration`)
 
 ### Phase 4 — Missingness experiments
 
 - [x] Implement complete-case baseline evaluation. — **DONE** (`cohort.py:complete_case_cohort`; `missingness_scoreboard.csv`)
+- [x] Add a matched complete-case test subset so all methods are scored on identical rows. — **DONE** (`missingness_scoreboard_complete_subset.csv`)
 - [x] Implement hospital × vital `P(R=1)` diagnostics and co-observation matrices. — **DONE** (`missingness.py:hospital_vital_diagnostics`, `coobservation_matrix`)
 - [x] Implement missing-mask feature + `(1−R)⊙X_base` interaction model. — **DONE** (`missingness.py:fit_mask_model`)
 - [x] Implement MICE, MI, KNN, and ML/MCMC imputation strategies. — **DONE** for core grid (`missingness.py:mice_cohorts`, `knn_cohort`); ML/MCMC deferred per core-grid decision
@@ -311,6 +313,8 @@ found. Evidence is given as `file:function` or `file:description`.
 - [x] Implement the kappa shift sweep and evaluate without retraining. — **DONE** (`missingness.py:kappa_sweep`; `kappa_sensitivity.csv`)
 - [x] Document the `κ<0` workaround. — **DONE** (`summary.md` limitations; `kappa_sensitivity.csv` primary flag)
 - [x] Add paired bootstrap comparisons and a `verdict.txt` scoreboard. — **DONE** (`metrics.py:bootstrap_diff`; `verdict.txt`)
+- [x] Add SWED-calibrated missingness scenarios and a combined simulation atlas. — **DONE** (`simulate_swed.py`, `run_atlas.py`; `atlas_results/`)
+- [x] Condition simulation analyses on at least one observed vital, matching the SWED fit. — **DONE** (`run_analysis.py --condition-any-vital`)
 
 ### Phase 5 — Orchestrator
 
@@ -356,8 +360,10 @@ found. Evidence is given as `file:function` or `file:description`.
 - `strategy_comparison.csv`
 - `missingness_diagnostics.csv`
 - `missingness_scoreboard.csv`
+- `missingness_scoreboard_complete_subset.csv`
 - `kappa_sensitivity.csv`
 - `verdict.txt`
+- simulation atlas: `atlas_metrics.csv`, `atlas_gx_recovery.csv`, `atlas_imputation_shift.csv`, `atlas_convergence.csv`, `summary.md`
 
 ---
 
@@ -368,6 +374,9 @@ found. Evidence is given as `file:function` or `file:description`.
 - **Primary missingness handling:** decide whether the main strategy comparison uses one prespecified method or reports the full model × missingness grid.
 - **Methodology divergence:** `report.tex` currently describes `M0/M_base/M_modular/M_direct`, while the pasted methodology describes Strategies A/B/C. This plan targets the pasted version; a later mapping step may be needed.
 - **Complaint macro-AUROC strata:** some synthetic complaint categories may have `<10` events and will be suppressed.
+- **Calibration intervals:** Wilson bars are pointwise binomial intervals; the patient-clustered bootstrap band is the primary uncertainty statement.
+- **Complete-case scoreboard:** the unmatched complete-case row uses a healthier test subset; use the matched subset table for method comparisons.
+- **SWED missingness:** 9/12 hospitals have no vital source, so structural missingness dominates. Per-vital `g_x` is prior-sensitive and must not be read as a clinical finding.
 
 ---
 

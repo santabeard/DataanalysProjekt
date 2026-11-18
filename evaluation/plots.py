@@ -30,7 +30,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from evaluation.metrics import bootstrap_diff, log_loss, brier
+from evaluation.metrics import bootstrap_diff, calibration_table, log_loss, brier
 from evaluation.models import fit_all
 
 MODEL_ORDER = ["M_ref", "M_base", "A", "B", "C", "M_direct"]
@@ -120,19 +120,21 @@ def _wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return max(0.0, centre - half), min(1.0, centre + half)
 
 
-def plot_calibration(data: dict, path: Path, bins: int = 10) -> None:
+def plot_calibration(data: dict, path: Path, bins: int = 10, B: int = 500) -> None:
     fig, ax = plt.subplots(figsize=(6, 6))
     tops = []
+    pid = data.get("patient_id")
+    if pid is None:
+        pid = np.arange(len(data["y"]))
     for model in data["models"]:
         p = data["pred"][model]
-        q = pd.qcut(pd.Series(p).rank(method="first"), bins, labels=False)
-        df = pd.DataFrame({"p": p, "y": data["y"], "q": q})
-        g = df.groupby("q").agg(pred=("p", "mean"), obs=("y", "mean"), n=("y", "size"), k=("y", "sum"))
-        lo, hi = zip(*[_wilson(int(k), int(n)) for k, n in zip(g["k"], g["n"])])
-        yerr = np.vstack([g["obs"] - np.asarray(lo), np.asarray(hi) - g["obs"]])
+        tab = calibration_table(data["y"], p, pid, bins=bins, B=B, seed=42)
+        lo, hi = zip(*[_wilson(int(k), int(n)) for k, n in zip(tab["k"], tab["n"])])
+        yerr = np.vstack([tab["obs"] - np.asarray(lo), np.asarray(hi) - tab["obs"]])
+        ax.fill_between(tab["pred"], tab["lo"], tab["hi"], color=COLORS.get(model), alpha=0.14, lw=0)
         ax.errorbar(
-            g["pred"],
-            g["obs"],
+            tab["pred"],
+            tab["obs"],
             yerr=yerr,
             fmt="o-",
             color=COLORS.get(model),
@@ -141,13 +143,13 @@ def plot_calibration(data: dict, path: Path, bins: int = 10) -> None:
             markersize=4,
             linewidth=1,
         )
-        tops.append(float(g["pred"].max()))
+        tops.append(float(tab["pred"].max()))
     lim = max(0.05, min(0.15, max(tops) * 1.1))
     ax.plot([0, lim], [0, lim], "k--", linewidth=1, label="ideal")
     ax.set_xlim(0, lim)
     ax.set_ylim(0, lim)
     ax.set_xlabel("Mean predicted risk (decile)")
-    ax.set_ylabel("Observed death rate (95% Wilson CI)")
+    ax.set_ylabel("Observed death rate (bars: Wilson; band: patient bootstrap)")
     ax.set_title("Calibration (test, deciles)")
     ax.legend(fontsize=8)
     fig.tight_layout()

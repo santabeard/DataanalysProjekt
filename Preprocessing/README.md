@@ -6,12 +6,16 @@ Pure numpy/scipy Gibbs sampler – no PyMC/Stan needed.
 | file | purpose |
 |---|---|
 | `simulate_data.py` | synthetic data: 3 base vars (never missing) + 11 vitals, binary outcome, a different missingness mechanism per vital; writes `data/` incl. `truth.json` |
-| `bayes_missing.py` | the model (`fit`, `run_chain`, `prepare`, R-hat/ESS) |
-| `run_analysis.py` | baselines, both Bayesian fits, diagnostics, sensitivity analysis, figures → `results/` |
+| `simulate_swed.py` | SWED-calibrated missingness scenarios (`structural`, `mar_base`, `mar_outcome`, `mnar`, `composite`) with known truth |
+| `run_analysis.py` | baselines, both Bayesian fits, diagnostics, sensitivity analysis, figures → `results/`; supports `--condition-any-vital` |
+| `run_atlas.py` | runs and combines all SWED-calibrated simulation scenarios → `atlas_results/` |
+| `bayes_missing.py` | the model (`fit`, `run_chain`, `prepare`, R-hat/ESS, robust imputation summaries) |
 
 ```
 python3 simulate_data.py            # -> data/
 python3 run_analysis.py             # -> results/   (~10 min on 2 cores)
+python3 simulate_swed.py --all      # -> swed_sim/
+python3 run_atlas.py --n 20000      # -> atlas_results/ (conditioned on >=1 vital)
 ```
 
 ## Model
@@ -33,6 +37,7 @@ Optional: `prior_obs_rate={"lactate": 0.6}` puts an informative prior on a vital
 import pandas as pd, bayes_missing as bm
 data = bm.prepare(df, ["age","sex","comorbidity"], vital_cols, "outcome", log_vars=("lactate",))
 res  = bm.fit(data, selection={"lactate": None, "glucose": None}, chains=4, n_iter=6000, n_burn=2500)
+# optional: bm.prepare(..., selection_cols=("hospital",)) and bm.fit(..., selection_covariates=S)
 bm.summarize(res["beta"], bm.coef_labels(res))        # per model-unit; multiply by data["x_scale"] for per-SD of the raw scale
 ```
 `selection={}` gives the plain MAR/ignorable joint model. Always check `γ_x` posteriors and run the δ sensitivity analysis.

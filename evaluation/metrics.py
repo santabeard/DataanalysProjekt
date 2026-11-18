@@ -252,6 +252,56 @@ def bootstrap_diff(
     }
 
 
+def calibration_table(
+    y: np.ndarray,
+    p: np.ndarray,
+    patient_ids: np.ndarray,
+    bins: int = 10,
+    B: int = 500,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """Decile observed rates with patient-clustered bootstrap intervals.
+
+    Bin membership is fixed from the original predictions, so each interval is
+    for the observed rate within that decile.  Patient blocks are resampled
+    jointly, preserving within-patient correlation across visits and bins.
+    """
+    y = np.asarray(y, dtype=float)
+    p = np.asarray(p, dtype=float)
+    q = pd.qcut(pd.Series(p).rank(method="first"), bins, labels=False).to_numpy()
+    rows = []
+    for b in range(bins):
+        m = q == b
+        rows.append({"bin": b, "pred": float(p[m].mean()), "n": int(m.sum()),
+                     "k": int(y[m].sum()), "obs": float(y[m].mean()) if m.any() else float("nan")})
+    tab = pd.DataFrame(rows)
+
+    _, blocks = _patient_blocks(np.asarray(patient_ids))
+    rng = np.random.default_rng(seed)
+    draws = {b: [] for b in range(bins)}
+    for _ in range(B):
+        rows_b = _stratified_rows(None, blocks, y, rng)  # type: ignore[arg-type]
+        if len(rows_b) == 0:
+            continue
+        for b in range(bins):
+            m = q[rows_b] == b
+            if m.any():
+                draws[b].append(float(y[rows_b][m].mean()))
+    lo, hi = [], []
+    for b in range(bins):
+        arr = np.asarray(draws[b], dtype=float)
+        arr = arr[np.isfinite(arr)]
+        if len(arr):
+            a, c = np.percentile(arr, [2.5, 97.5])
+        else:
+            a = c = float("nan")
+        lo.append(float(a))
+        hi.append(float(c))
+    tab["lo"] = lo
+    tab["hi"] = hi
+    return tab
+
+
 def metrics_frame(
     results: dict[str, dict[str, float]],
     name: str,

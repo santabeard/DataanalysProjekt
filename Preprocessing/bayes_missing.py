@@ -75,11 +75,12 @@ def _chol_sample(prec, rhs, rng):
 
 
 # --------------------------------------------------------------------------- data prep
-def prepare(df, base_cols, vital_cols, outcome_col, log_vars=()):
+def prepare(df, base_cols, vital_cols, outcome_col, log_vars=(), selection_cols=()):
     """Standardise base variables (fully observed) and vitals (on observed values).
 
-    Returns a dict; coefficients come back per 1 'model unit' and are mapped to
-    original units with `x_scale`.
+    `selection_cols` are optional, fully observed covariates used only in the
+    missingness (selection) model, e.g. hospital indicators.  They are returned
+    as ``S`` and never enter the vitals or outcome design.
     """
     base = df[base_cols].to_numpy(float)
     z_loc, z_scale = base.mean(0), base.std(0)
@@ -90,18 +91,30 @@ def prepare(df, base_cols, vital_cols, outcome_col, log_vars=()):
             X[:, j] = np.log(X[:, j])
     x_loc, x_scale = np.nanmean(X, 0), np.nanstd(X, 0)
     X = (X - x_loc) / x_scale
+    S = df[list(selection_cols)].to_numpy(float) if len(selection_cols) else None
     return dict(Z=Z, X=X, y=df[outcome_col].to_numpy(float), z_scale=z_scale,
-                x_loc=x_loc, x_scale=x_scale, base_cols=list(base_cols), vital_cols=list(vital_cols))
+                x_loc=x_loc, x_scale=x_scale, base_cols=list(base_cols), vital_cols=list(vital_cols),
+                S=S, selection_cols=list(selection_cols))
 
 
 # --------------------------------------------------------------------------- one chain
 def run_chain(Z, X, y, selection, names, n_iter=3000, n_burn=1000, seed=0,
               tau_beta=2.5, tau_g=2.0, tau_gx=1.0, tau_B=np.sqrt(10.0),
-              prior_obs_rate=None, tau_g0_informative=0.5, verbose=False):
-    """Gibbs sampler for one chain.  `selection`: {vital_name: None | fixed g_x}."""
+              prior_obs_rate=None, tau_g0_informative=0.5, selection_covariates=None,
+              verbose=False):
+    """Gibbs sampler for one chain.  `selection`: {vital_name: None | fixed g_x}.
+
+    `selection_covariates` (N, s) enter only the missingness model, as
+    ``[1, S, Z, y]``.  This keeps hospital/ward recording practice out of the
+    vitals and outcome regressions.
+    """
     rng = np.random.default_rng(seed)
     N, p = X.shape
     q = Z.shape[1]
+    S = None if selection_covariates is None else np.asarray(selection_covariates, float)
+    if S is not None and (S.ndim != 2 or S.shape[0] != N):
+        raise ValueError("selection_covariates must be a 2-D array with one row per observation")
+    s = 0 if S is None else S.shape[1]
     obs = ~np.isnan(X)
     miss = ~obs
     Xc = np.where(obs, X, 0.0)                    # start imputations at the (standardised) mean
@@ -123,7 +136,8 @@ def run_chain(Z, X, y, selection, names, n_iter=3000, n_burn=1000, seed=0,
 
     # --- selection models
     sel = [j for j, nm in enumerate(names) if nm in selection]
-    M = np.column_stack([np.ones(N), Z, y])        # [1, z, y]
+    Scols = [] if S is None else [S]
+    M = np.column_stack([np.ones(N)] + Scols + [Z, y])   # [1, S, z, y]
     km = M.shape[1]
     fixed = {j: selection[names[j]] for j in sel}
     gam = {j: np.zeros(km + 1) for j in sel}
@@ -148,6 +162,7 @@ def run_chain(Z, X, y, selection, names, n_iter=3000, n_burn=1000, seed=0,
         beta=np.zeros((n_keep, kb)),
         gamma=np.zeros((n_keep, len(sel), km + 1)),
         imp_mean=np.zeros((n_keep, p)),
+        imp_stats=np.zeros((n_keep, p, 5)),
         Sigma=np.zeros((n_keep, p, p)),
         B=np.zeros((n_keep, q + 1, p)),
         X_post_mean=np.zeros((N, p)),
@@ -216,6 +231,12 @@ def run_chain(Z, X, y, selection, names, n_iter=3000, n_burn=1000, seed=0,
             for a, j in enumerate(sel):
                 out["gamma"][k, a] = gam[j]
             out["imp_mean"][k] = [Xc[miss[:, j], j].mean() if miss[:, j].any() else np.nan for j in range(p)]
+            for j in range(p):
+                vals = Xc[miss[:, j], j]
+                if vals.size:
+                    out["imp_stats"][k, j] = [vals.mean(), vals.std(), *np.quantile(vals, [0.1, 0.5, 0.9])]
+                else:
+                    out["imp_stats"][k, j] = np.nan
             out["Sigma"][k] = Sigma
             out["B"][k] = B
             out["X_post_mean"] += Xc / n_keep
@@ -224,14 +245,43 @@ def run_chain(Z, X, y, selection, names, n_iter=3000, n_burn=1000, seed=0,
     return out
 
 
+NORMAL_Q10_Q90 = 2.563103131  # q90 - q10 in SD units for a normal distribution
+
+
+def summarize_imputations(imp_stats):
+    """Robust posterior summary of imputed values.
+
+    ``imp_stats`` has last axis ``(mean, sd, q10, q50, q90)`` per draw and vital.
+    We average the per-draw means and quantiles, and derive the SD from the
+    q10--q90 range.  Averaging the per-draw SD is dominated by rare outlier
+    draws (a few extreme imputations can inflate it by an order of magnitude).
+    """
+    arr = np.asarray(imp_stats, dtype=float)
+    p = arr.shape[-2]
+    out = np.full((p, 5), np.nan)
+    flat = arr.reshape(-1, p, 5)
+    for j in range(p):
+        v = flat[:, j, :]
+        v = v[np.isfinite(v[:, 0])]
+        if len(v) == 0:
+            continue
+        q = v[:, 2:5].mean(0)
+        out[j] = [v[:, 0].mean(), (q[2] - q[0]) / NORMAL_Q10_Q90, *q]
+    return out
+
+
 def _run(args):
     return run_chain(**args)
 
 
-def fit(data, selection=None, chains=2, n_iter=3000, n_burn=1000, seed=1, verbose=True, **kw):
+def fit(data, selection=None, chains=2, n_iter=3000, n_burn=1000, seed=1, verbose=True,
+        selection_covariates=None, **kw):
     """Run several chains in parallel. Returns dict with arrays shaped (chains, draws, ...)."""
     selection = selection or {}
+    if selection_covariates is None:
+        selection_covariates = data.get("S")
     jobs = [dict(Z=data["Z"], X=data["X"], y=data["y"], selection=selection, names=data["vital_cols"],
+                 selection_covariates=selection_covariates,
                  n_iter=n_iter, n_burn=n_burn, seed=seed * 1000 + c, verbose=verbose and c == 0, **kw)
             for c in range(chains)]
     if chains == 1:
@@ -241,8 +291,10 @@ def fit(data, selection=None, chains=2, n_iter=3000, n_burn=1000, seed=1, verbos
             res = list(ex.map(_run, jobs))
     stack = lambda k: np.stack([r[k] for r in res])
     return dict(beta=stack("beta"), gamma=stack("gamma"), imp_mean=stack("imp_mean"),
+                imp_stats=stack("imp_stats"),
                 Sigma=stack("Sigma"), B=stack("B"), X_post_mean=np.mean([r["X_post_mean"] for r in res], 0),
-                sel=res[0]["sel"], data=data, selection=selection)
+                sel=res[0]["sel"], data=data, selection=selection,
+                selection_covariates=selection_covariates)
 
 
 # --------------------------------------------------------------------------- diagnostics

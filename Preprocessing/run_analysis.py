@@ -14,6 +14,10 @@ i.e. the scale the truth was generated on):
   Bayes-MNAR    joint Bayesian model + selection model for every vital (g_x free)
 
 Then a delta-shift sensitivity analysis for the suspected-MNAR vitals.
+
+With ``--condition-any-vital`` the analysis keeps only rows with at least one
+observed vital.  This matches the SWED missingness fit and removes the shared
+visit-level availability gate from the simulation.
 """
 import os
 
@@ -154,11 +158,12 @@ def make_recovery_figure(coef, imp, gam, labels, vit, path):
     # C: g_x
     ax = axes[2]
     _style(ax, "C  Own-value effect on being observed (g_x)")
-    ax.hlines(y, gam["lo"], gam["hi"], color=C_YELLOW, lw=1.8)
-    ax.plot(gam["est"], y, "o", color=C_YELLOW, ms=7, mec=SURF, mew=1.5, label="Posterior mean, 95% CrI")
-    ax.plot(gam["true"], y, "D", color=INK, ms=6, mec=SURF, mew=1.2, label="Truth")
+    yg = np.arange(len(gam["est"]))
+    ax.hlines(yg, gam["lo"], gam["hi"], color=C_YELLOW, lw=1.8)
+    ax.plot(gam["est"], yg, "o", color=C_YELLOW, ms=7, mec=SURF, mew=1.5, label="Posterior mean, 95% CrI")
+    ax.plot(gam["true"], yg, "D", color=INK, ms=6, mec=SURF, mew=1.2, label="Truth")
     ax.axvline(0, color=MUTED, lw=1.0, ls=":")
-    ax.set_yticks(y)
+    ax.set_yticks(yg)
     ax.set_yticklabels([])
     ax.invert_yaxis()
     ax.set_xlabel("probit coefficient per 1 SD of the vital (0 = ignorable)", color=INK2, fontsize=9)
@@ -168,14 +173,15 @@ def make_recovery_figure(coef, imp, gam, labels, vit, path):
     plt.close(fig)
 
 
-def make_sensitivity_figure(sens, truth_by_vital, path):
+def make_sensitivity_figure(sens, truth_by_vital, path, suspects=None):
+    suspects = SUSPECT if suspects is None else suspects
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(8.5, 5.2), facecolor=SURF)
     _style(ax, "Sensitivity of outcome coefficients to the assumed MNAR strength")
     ax.grid(axis="y", color=GRID, lw=0.8)
-    cols = dict(zip(SUSPECT, [C_BLUE, C_ORANGE, C_AQUA, C_YELLOW]))
+    cols = dict(zip(suspects, [C_BLUE, C_ORANGE, C_AQUA, C_YELLOW]))
     for v, c in cols.items():
         est, lo, hi = sens[f"{v}__est"], sens[f"{v}__lo"], sens[f"{v}__hi"]
         ax.fill_between(sens["s"], lo, hi, color=c, alpha=0.12, lw=0)
@@ -201,6 +207,8 @@ def main():
     ap.add_argument("--burn", type=int, default=2500)
     ap.add_argument("--chains", type=int, default=2)
     ap.add_argument("--skip-sensitivity", action="store_true")
+    ap.add_argument("--condition-any-vital", action="store_true",
+                    help="keep only rows with at least one observed vital (matches the SWED fit)")
     a = ap.parse_args()
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -209,20 +217,34 @@ def main():
     full = pd.read_csv(Path(a.data_dir) / "synthetic_ehr_complete.csv")
     truth = json.loads((Path(a.data_dir) / "truth.json").read_text())
     base, vit = truth["base"], truth["vitals"]
+    if a.condition_any_vital:
+        keep = df[vit].notna().any(axis=1).to_numpy()
+        df = df.loc[keep].reset_index(drop=True)
+        full = full.loc[keep].reset_index(drop=True)
+        truth["n"] = int(len(df))
+        truth["prevalence"] = float(df["outcome"].mean())
+        print(f"conditioned on >=1 vital: {len(df):,} rows", flush=True)
     q, p = len(base), len(vit)
     spread = np.array(truth["vital_spread"])
     beta_true = np.array(truth["beta_base"] + truth["beta_vitals"])
     labels = base + vit
-    mnar_idx = np.array([q + vit.index(v) for v in ("glucose", "lactate", "creatinine", "sodium")])
-
-    data = bm.prepare(df, base, vit, "outcome", LOG_VARS)
+    log_vars = tuple(v for v, is_log in zip(vit, truth.get("vital_is_log", [False] * p)) if is_log)
+    sel_cols = list(truth.get("selection_covariates", []))
+    data = bm.prepare(df, base, vit, "outcome", log_vars, selection_cols=sel_cols)
+    miss = np.isnan(data["X"])
+    sel_vitals = [v for j, v in enumerate(vit) if miss[:, j].any()]
+    mnar_vitals = [v for v in vit
+                   if v in sel_vitals and abs(float(truth["missingness"][v].get("gx", 0.0))) > 1e-9]
+    suspects = {v: int(np.sign(truth["missingness"][v]["gx"])) for v in mnar_vitals}
+    mnar_idx = (np.array([q + vit.index(v) for v in mnar_vitals]) if mnar_vitals
+                else np.arange(q, q + p))
     factor = data["x_scale"] / spread                      # model slope -> per true SD
     to_true = np.concatenate([np.ones(q), factor])
     Z, X, y = data["Z"], data["X"], data["y"]
     coef = {"truth": pd.Series(beta_true)}
 
     print("== baselines", flush=True)
-    dfull = bm.prepare(full, base, vit, "outcome", LOG_VARS)
+    dfull = bm.prepare(full, base, vit, "outcome", log_vars, selection_cols=sel_cols)
     b, cov = logit_fit(design(dfull["Z"], dfull["X"]), dfull["y"])
     coef["Oracle (complete data)"] = freq_table(b, cov, np.concatenate([np.ones(q), dfull["x_scale"] / spread]))
     cc = ~np.isnan(X).any(1)
@@ -239,9 +261,9 @@ def main():
     diag_mar, coef["Bayes, MAR"] = bayes_table(res_mar, to_true)
     print(f"   {time.time() - t0:.0f}s", flush=True)
 
-    print("== Bayesian model, selection model for every vital (g_x free)", flush=True)
+    print("== Bayesian model, selection model for vitals with missingness (g_x free)", flush=True)
     t0 = time.time()
-    res_sel = bm.fit(data, {v: None for v in vit}, chains=a.chains, n_iter=a.iter, n_burn=a.burn, seed=2)
+    res_sel = bm.fit(data, {v: None for v in sel_vitals}, chains=a.chains, n_iter=a.iter, n_burn=a.burn, seed=2)
     diag_sel, coef["Bayes, MNAR selection"] = bayes_table(res_sel, to_true)
     print(f"   {time.time() - t0:.0f}s", flush=True)
 
@@ -277,18 +299,20 @@ def main():
 
     # ---- selection-model coefficients
     sel = res_sel["sel"]
-    km = q + 2
+    n_sel = 0 if data.get("S") is None else data["S"].shape[1]
+    km = 1 + n_sel + q + 1
+    gy_idx = 1 + n_sel + q
     g = res_sel["gamma"]                                    # (chains, n, nsel, km+1)
     rows = []
     for ai, j in enumerate(sel):
         name = vit[j]
         m = truth["missingness"][name]
-        dx = g[:, :, ai, km] / factor[j]                    # per true SD
-        dy = g[:, :, ai, q + 1]
+        dx = g[:, :, ai, km] * factor[j]                    # per true SD
+        dy = g[:, :, ai, gy_idx]
         flat = dx.reshape(-1)
-        rows.append(dict(vital=name, mechanism=m["mechanism"], true_gx=m["gx"], gx_mean=flat.mean(),
+        rows.append(dict(vital=name, mechanism=m["mechanism"], true_gx=m.get("gx", 0.0), gx_mean=flat.mean(),
                          gx_lo=np.quantile(flat, .025), gx_hi=np.quantile(flat, .975),
-                         gx_rhat=bm.rhat(dx), true_gy=m["gy"], gy_mean=dy.mean(),
+                         gx_rhat=bm.rhat(dx), true_gy=m.get("gy", 0.0), gy_mean=dy.mean(),
                          gy_lo=np.quantile(dy, .025), gy_hi=np.quantile(dy, .975)))
     gtab = pd.DataFrame(rows)
     gtab.round(3).to_csv(out / "missingness_model.csv", index=False)
@@ -298,15 +322,25 @@ def main():
     # ---- imputation check
     full_t = full[vit].to_numpy(float).copy()
     for j, nm in enumerate(vit):
-        if nm in LOG_VARS:
+        if nm in log_vars:
             full_t[:, j] = np.log(full_t[:, j])
     full_m = (full_t - data["x_loc"]) / data["x_scale"]
-    miss = np.isnan(X)
-    true_miss_mean = np.array([full_m[miss[:, j], j].mean() for j in range(p)])
+    true_miss_mean = np.array([full_m[miss[:, j], j].mean() if miss[:, j].any() else np.nan
+                               for j in range(p)])
+    true_miss_sd = np.array([full_m[miss[:, j], j].std() if miss[:, j].any() else np.nan
+                             for j in range(p)])
+    obs_mean = np.array([X[~miss[:, j], j].mean() if (~miss[:, j]).any() else np.nan
+                         for j in range(p)])
+    mar_imp = bm.summarize_imputations(res_mar["imp_stats"])
+    mnar_imp = bm.summarize_imputations(res_sel["imp_stats"])
     imp = pd.DataFrame({
-        "vital": vit, "mech": [truth["missingness"][v]["mechanism"].split(" (")[0].split(" +")[0] for v in vit],
-        "observed_mean": 0.0, "true_missing_mean": true_miss_mean,
-        "bayes_mar": res_mar["imp_mean"].mean((0, 1)), "bayes_mnar": res_sel["imp_mean"].mean((0, 1)),
+        "vital": vit,
+        "mech": [truth["missingness"][v]["mechanism"].split(" (")[0].split(" +")[0] for v in vit],
+        "observed_mean": obs_mean, "true_missing_mean": true_miss_mean, "true_missing_sd": true_miss_sd,
+        "bayes_mar": mar_imp[:, 0], "bayes_mnar": mnar_imp[:, 0],
+        "bayes_mar_sd": mar_imp[:, 1], "bayes_mnar_sd": mnar_imp[:, 1],
+        "bayes_mar_q10": mar_imp[:, 2], "bayes_mar_q90": mar_imp[:, 4],
+        "bayes_mnar_q10": mnar_imp[:, 2], "bayes_mnar_q90": mnar_imp[:, 4],
     })
     imp.round(3).to_csv(out / "imputation_check.csv", index=False)
     print("\nMean of missing values (observed-data SD units)")
@@ -320,13 +354,15 @@ def main():
                         gamma_mnar=res_sel["gamma"], labels=np.array(bm.coef_labels(res_sel)))
 
     # ---- sensitivity analysis
-    if not a.skip_sensitivity:
+    if not a.skip_sensitivity and suspects:
         print("\n== sensitivity analysis (g_x fixed for suspect vitals)", flush=True)
         recs = []
         for s in SENS_GRID:
             t0 = time.time()
-            selection = {v: d * s * factor[vit.index(v)] for v, d in SUSPECT.items()}
-            r = bm.fit(data, selection, chains=a.chains, n_iter=3000, n_burn=1000, seed=10 + int(s * 100), verbose=False)
+            # s is per true SD; convert to the model's standardised-X scale.
+            selection = {v: d * s / factor[vit.index(v)] for v, d in suspects.items()}
+            r = bm.fit(data, selection, chains=a.chains, n_iter=min(a.iter, 3000),
+                       n_burn=min(a.burn, 1000), seed=10 + int(s * 100), verbose=False)
             _, tab = bayes_table(r, to_true)
             rec = {"s": s}
             for v in vit:
@@ -335,10 +371,11 @@ def main():
             print(f"   s={s:.2f}  {time.time() - t0:.0f}s", flush=True)
         sens = pd.DataFrame(recs)
         sens.round(3).to_csv(out / "sensitivity.csv", index=False)
-        for v in SUSPECT:
+        for v in suspects:
             print(f"   {v:11s} beta by s:", ", ".join(f"{x:.2f}" for x in sens[f"{v}__est"]),
                   f"  (truth {beta_true[labels.index(v)]:.2f})")
-        make_sensitivity_figure(sens, {v: beta_true[labels.index(v)] for v in SUSPECT}, out / "fig_sensitivity.png")
+        make_sensitivity_figure(sens, {v: beta_true[labels.index(v)] for v in suspects},
+                                out / "fig_sensitivity.png", suspects)
     print("\ndone ->", out)
 
 
