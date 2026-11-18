@@ -36,8 +36,11 @@ Code developed on the synthetic data runs unchanged on the real build, because t
 | 1. Subset | Bianca | `sbatch 01_subset.sbatch` | `~/Desktop/data_std/subset/` |
 | 2. Build | Bianca | `sbatch 02_build.sbatch` | `~/Desktop/data_std/built_subset/` |
 | 3. Stats | Bianca | `python 03_export_stats.py` | `~/Desktop/data_std/export_stats_built_subset/` |
+| 3b. Missingness | Bianca | `python 03b_export_missingness.py` | `missingness_*.csv`, `lab_patterns.csv` in the same stats folder |
+| 3c. Joint stats | Bianca | `python 03c_export_joint_stats.py` | `joint_correlation.csv`, `conditional_quantiles.csv`, `joint_categorical.csv`, `mortality_rate.csv`, `diagnoses_conditional.csv` |
 | 4. Review and export | Bianca → laptop | read every CSV, follow the project's export routine | |
 | 5. Synthesize | laptop | `python 04_synthesize.py --stats export_stats_built_subset --validate` | `synthetic_export_stats_built_subset/` |
+| 6. Evaluate | laptop | `python -m evaluation.fidelity --real <built> --synthetic <synthetic> --out <results>` | fidelity, privacy and train-synthetic/test-real utility reports |
 
 `check_env.py` checks the Python packages, paths and input files. Run it on Bianca from `data_std` before the pipeline.
 
@@ -55,7 +58,10 @@ Code developed on the synthetic data runs unchanged on the real build, because t
   - percentiles need 50 or more values (1st/99th need 1,000 or more), and min/max are never written
   - dates appear only as year, hour or weekday
   - no IDs and no free text
-- **`04_synthesize.py`** draws each variable from its exported distribution, per hospital, source and concept. Vitals come in rounds that share a timestamp. Parquet metadata is tagged `synthetic=true`. Unbacked guesses are marked `ASSUMPTION` in the code.
+- **`03b_export_missingness.py`** fits MAR and MNAR selection models on the real built cohort, for vitals and the most common lab concepts per source. It writes disclosure-safe, rounded missingness rates, joint observation patterns, selection coefficients (`g0`, `gz_*`, `gy`, `gx`), posterior imputation summaries and `gx` prior sensitivities into the same stats folder. The fitted `gx` is an assumption about unobserved values, not a clinical finding.
+- **`03c_export_joint_stats.py`** writes disclosure-safe joint and conditional summaries: Spearman correlations among vitals and lab concepts, conditional vital/lab quantiles given age/sex/complaint/30-day outcome, joint categorical tables, month-of-visit and inter-arrival summaries, 30-day mortality rates and diagnosis tables conditional on the same covariates. As in `03`, every group needs at least 10 distinct patients and counts are rounded to 5.
+- **`04_synthesize.py`** draws each variable from its exported distribution, per hospital, source and concept. With `03c` present it uses correlated latent draws, conditional quantiles, joint categorical tables, conditional mortality/diagnosis probabilities and monthly arrival weights. When the `missingness_*.csv` files are present it first draws latent complete values, then applies the fitted hospital/variable missingness mechanism before writing only the observed rows. Use `--missingness legacy` for the old independent-missingness behaviour and `--gx-scale` to sweep MNAR assumptions. Vitals come in rounds that share a timestamp. Parquet metadata is tagged `synthetic=true` and records the missingness mode. Unbacked guesses are marked `ASSUMPTION` in the code.
+- **`evaluation/fidelity.py`** compares a synthetic build with the real build: category/quantile/correlation fidelity, exact-key overlap, and two utility experiments (`train_real_test_real` and `train_synthetic_test_real`). The latter is the main arbiter, with fidelity and privacy as constraints.
 
 ### Safety
 
@@ -105,9 +111,11 @@ Lesson: memory use is small. Use `-p core -n 2` for subset work. Try a normal no
 - **SNOMED codes for vitals:** verify each one. The existing mapping file uses procedure codes for pulse, temperature and saturation, while `02` uses observable entities. Discuss with your supervisor.
 - **Blood pressure at VGR:** `ehr_sa_vgr_lab` has no `value_str`, so a plain "Blodtryck" row can't be split and ends up with no value. Check how VGR stores BP in the subset.
 - **Exporting synthetic data:** generating it from aggregates (as done here) is the safer route. The disclosure rules in `03` should be agreed with your supervisor.
-- **Limitations of the synthetic data:**
-  - no correlations between variables, so use it to test code, not findings
-  - categories with fewer than 10 patients are missing
+ - **Limitations of the synthetic data:**
+   - correlations and conditional distributions come only from disclosure-safe, rounded exports; rare groups are suppressed, so use the data to test code, not findings
+   - missingness can now follow exported hospital/variable mechanisms, but latent values behind missing rows are model-based assumptions; check `--gx-scale` before drawing conclusions
+   - categories with fewer than 10 patients are missing
+
   - `term_id` and `SJUKHUS` are blank, and ICD-10 codes have only 3 characters
 - **Statistics from the full build** (`03 --built .../built_clean_parquet`) would keep more rare categories than the 5,000-patient subset.
 
@@ -140,3 +148,4 @@ Lesson: memory use is small. Use `-p core -n 2` for subset work. Try a normal no
 3. Review the vitals list (the notebook's `vitals_snomed_map_draft.csv` → `out/vitals_snomed_map.csv`) and verify the SNOMED codes.
 4. Run `03_export_stats.py`, review the CSVs, and agree on the export with your supervisor.
 5. Locally: run `04_synthesize.py --validate` on the exported statistics.
+6. Locally: run `python -m evaluation.fidelity --real <built> --synthetic <synthetic> --out <results>`; require no loss in train-synthetic/test-real utility before using a newer generator.

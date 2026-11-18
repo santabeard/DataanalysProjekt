@@ -53,6 +53,29 @@ def _one_visit_per_patient(df: pd.DataFrame, seed: int) -> pd.DataFrame:
     return df.sample(frac=1.0, random_state=seed).drop_duplicates("lopnr_swed", keep="first")
 
 
+def add_base_columns(df: pd.DataFrame, complaints: list[str]) -> tuple[pd.DataFrame, list[str]]:
+    complaint_cols = [f"sct_{c}" for c in complaints]
+    for c, col in zip(complaints, complaint_cols):
+        df[col] = (df["complaint"].to_numpy() == c).astype(float)
+    return df, ["age", "male"] + complaint_cols
+
+
+def sample_fit_rows(df: pd.DataFrame, sample: int | None, seed: int) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(df))
+    fit = df.iloc[order].drop_duplicates("lopnr_swed", keep="first")
+    if sample is not None and len(fit) > sample:
+        fit = fit.iloc[:sample]
+    return fit.reset_index(drop=True)
+
+
+def hospital_selection_columns(df: pd.DataFrame, hospitals: list[str]) -> list[str]:
+    cols = [f"sel_hosp_{h.replace('-', '_')}" for h in hospitals[1:]]
+    for h, col in zip(hospitals[1:], cols):
+        df[col] = (df["ed_hospital"].to_numpy() == h).astype(float)
+    return cols
+
+
 def build_frame(
     built: str | Path,
     sample: int | None,
@@ -76,28 +99,32 @@ def build_frame(
     if fit_pool.empty:
         raise ValueError("no development visits at the vital-recording hospitals")
 
-    rng = np.random.default_rng(seed)
-    order = rng.permutation(len(fit_pool))
-    fit = fit_pool.iloc[order].drop_duplicates("lopnr_swed", keep="first")
-    if sample is not None and len(fit) > sample:
-        fit = fit.iloc[:sample]
-    fit = fit.reset_index(drop=True)
-
-    complaints = cohort.complaints
-    complaint_cols = [f"sct_{c}" for c in complaints]
-    for c, col in zip(complaints, complaint_cols):
-        fit[col] = (fit["complaint"].to_numpy() == c).astype(float)
-
-    reference = vh[0]
-    sel_cols = [f"sel_hosp_{h.replace('-', '_')}" for h in vh[1:]]
-    for h, col in zip(vh[1:], sel_cols):
-        fit[col] = (fit["ed_hospital"].to_numpy() == h).astype(float)
-    fit.attrs["reference_hospital"] = reference
+    fit = sample_fit_rows(fit_pool, sample, seed)
+    fit, base_cols = add_base_columns(fit, cohort.complaints)
+    sel_cols = hospital_selection_columns(fit, vh)
+    fit.attrs["reference_hospital"] = vh[0]
     fit.attrs["vital_hospitals"] = vh
     fit.attrs["condition_any_vital"] = condition_any_vital
-
-    base_cols = ["age", "male"] + complaint_cols
     return all_visits, fit, vh, base_cols, sel_cols
+
+
+def lab_visit_values(built: str | Path, concepts: list[str], sources: list[str] | None = None) -> pd.DataFrame:
+    """First observed value per hospital-source visit and lab concept."""
+    lab = pd.read_parquet(
+        Path(built) / "lab_meas.parquet",
+        columns=["ed_visit_id", "source", "term_name", "value_num", "datetime_analysis"],
+    )
+    lab = lab[lab["ed_visit_id"].notna() & lab["value_num"].notna() & lab["term_name"].isin(concepts)]
+    if sources:
+        lab = lab[lab["source"].isin(sources)]
+    first = (
+        lab.sort_values("datetime_analysis")
+        .groupby(["source", "ed_visit_id", "term_name"])["value_num"]
+        .first()
+        .unstack("term_name")
+    )
+    first.columns = [f"lab_{c}" for c in first.columns]
+    return first.reset_index()
 
 
 def hospital_observation_table(all_visits: pd.DataFrame, vitals: list[str]) -> pd.DataFrame:
@@ -217,6 +244,143 @@ def distribution_table(res: dict, data: dict, model: str, vitals: list[str] | No
         row["shift_standardised"] = row["shift_imputed_vs_observed"] / row["observed_sd"]
         row["shift_complete_vs_observed"] = row["complete_case_mean"] - row["observed_mean"]
         rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def observation_table(
+    df: pd.DataFrame,
+    columns: list[str],
+    group_col: str = "ed_hospital",
+    source_col: str | None = None,
+    domain: str = "",
+) -> pd.DataFrame:
+    """Long-format observed-rate table for arbitrary visit-level variables."""
+    keys = [group_col] + ([source_col] if source_col else [])
+    rows = []
+    for key, g in df.groupby(keys, dropna=False):
+        key = key if isinstance(key, tuple) else (key,)
+        base = {"domain": domain, "group": key[0], "source": key[1] if source_col else "",
+                "n_visits": len(g), "n_patients": g["lopnr_swed"].nunique(),
+                "any_observed": float(g[columns].notna().any(axis=1).mean())}
+        for c in columns:
+            rows.append(dict(base, variable=c, observed_rate=float(g[c].notna().mean())))
+    return pd.DataFrame(rows)
+
+
+def pattern_table(
+    df: pd.DataFrame,
+    columns: list[str],
+    group_col: str = "ed_hospital",
+    source_col: str | None = None,
+    domain: str = "",
+) -> pd.DataFrame:
+    """Joint observation patterns, one row per group and pattern."""
+    keys = [group_col] + ([source_col] if source_col else [])
+    rows = []
+    for key, g in df.groupby(keys, dropna=False):
+        key = key if isinstance(key, tuple) else (key,)
+        pattern = g[columns].notna().astype(int).astype(str).agg("".join, axis=1)
+        counts = pattern.value_counts()
+        persons = g.assign(_pattern=pattern).groupby("_pattern")["lopnr_swed"].nunique()
+        for p, n in counts.items():
+            rows.append({
+                "domain": domain, "group": key[0], "source": key[1] if source_col else "",
+                "pattern": p, "n": int(n), "persons": int(persons.loc[p]),
+            })
+    return pd.DataFrame(rows)
+
+
+def selection_long_table(
+    res: dict,
+    data: dict,
+    model: str,
+    domain: str = "vital",
+    group: str = "",
+    source: str = "",
+    log_cols=(),
+) -> pd.DataFrame:
+    """All selection-model coefficients in long format, including hospital offsets."""
+    labels = (["intercept"] + list(data.get("selection_cols", [])) + list(data["base_cols"])
+              + ["outcome", "own_value"])
+    gamma = np.asarray(res["gamma"])
+    x_loc, x_scale = np.asarray(data["x_loc"]), np.asarray(data["x_scale"])
+    z_loc, z_scale = np.asarray(data["z_loc"]), np.asarray(data["z_scale"])
+    base_cols = list(data["base_cols"])
+    rows = []
+    for a, j in enumerate(res["sel"]):
+        name = data["vital_cols"][j]
+        params = gamma[:, :, a, :].reshape(-1, len(labels))
+        meta = {
+            "model": model, "domain": domain, "group": group, "source": source, "variable": name,
+            "observed_rate": float(np.mean(~np.isnan(data["X"][:, j]))),
+            "x_loc": float(x_loc[j]), "x_scale": float(x_scale[j]),
+            "log": int(name in set(log_cols)),
+        }
+        for k, label in enumerate(labels):
+            vals = params[:, k]
+            rec = dict(meta, coef=label, mean=float(vals.mean()),
+                       lo=float(np.quantile(vals, 0.025)), hi=float(np.quantile(vals, 0.975)),
+                       z_loc=np.nan, z_scale=np.nan)
+            if label in base_cols:
+                b = base_cols.index(label)
+                rec["z_loc"], rec["z_scale"] = float(z_loc[b]), float(z_scale[b])
+            rows.append(rec)
+    return pd.DataFrame(rows)
+
+
+def imputation_long_table(
+    res: dict,
+    data: dict,
+    model: str,
+    domain: str = "vital",
+    group: str = "",
+    source: str = "",
+    log_cols=(),
+) -> pd.DataFrame:
+    """Posterior imputation summaries converted to the original value scale."""
+    X = np.asarray(data["X"])
+    loc, scale = np.asarray(data["x_loc"]), np.asarray(data["x_scale"])
+    imputed = bm.summarize_imputations(res["imp_stats"])
+    logs = set(log_cols)
+    rows = []
+    for j, name in enumerate(data["vital_cols"]):
+        observed = X[~np.isnan(X[:, j]), j]
+
+        def back(z):
+            z = np.asarray(z, dtype=float)
+            return np.exp(z * scale[j] + loc[j]) if name in logs else z * scale[j] + loc[j]
+
+        obs_raw = np.asarray(back(observed), dtype=float)
+        q10, q50, q90 = (float(x) for x in back(imputed[j, 2:5]))
+        im_mean = float(back(imputed[j, 0]))
+        im_sd = (q90 - q10) / bm.NORMAL_Q10_Q90 if name in logs else float(imputed[j, 1] * scale[j])
+        rows.append({
+            "model": model, "domain": domain, "group": group, "source": source, "variable": name,
+            "observed_n": int(len(obs_raw)), "observed_mean": float(np.mean(obs_raw)),
+            "observed_sd": float(np.std(obs_raw)), "imputed_mean": im_mean, "imputed_sd": im_sd,
+            "imputed_q10": q10, "imputed_q50": q50, "imputed_q90": q90,
+            "shift_imputed_vs_observed": im_mean - float(np.mean(obs_raw)),
+            "shift_standardised": (im_mean - float(np.mean(obs_raw))) / max(float(np.std(obs_raw)), 1e-9),
+        })
+    return pd.DataFrame(rows)
+
+
+def prior_sensitivity_table(
+    res: dict,
+    data: dict,
+    tau: float,
+    domain: str = "vital",
+    group: str = "",
+    source: str = "",
+) -> pd.DataFrame:
+    rows = []
+    for a, j in enumerate(res["sel"]):
+        gx = res["gamma"][:, :, a, -1].reshape(-1)
+        rows.append({
+            "tau_gx": float(tau), "domain": domain, "group": group, "source": source,
+            "variable": data["vital_cols"][j], "gx_mean": float(gx.mean()),
+            "gx_lo": float(np.quantile(gx, 0.025)), "gx_hi": float(np.quantile(gx, 0.975)),
+        })
     return pd.DataFrame(rows)
 
 

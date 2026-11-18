@@ -14,10 +14,10 @@ How values are drawn
   - Every variable follows its exported distribution: category counts, or the
     percentiles q01..q99, sampled by linear interpolation between them. Tails
     beyond the outermost percentile are extended by one segment width.
-  - Variables are drawn independently within the groups the statistics give
-    (hospital, sex, source, concept ...). Correlations between variables, such
-    as age vs diagnoses or pulse vs temperature, are NOT reproduced. Use the
-    data to test code, not to test findings.
+  - When 03c_export_joint_stats.py has run, latent vitals and labs use exported
+    correlations and conditional quantiles, and visits/deaths/diagnoses use
+    joint categorical and conditional tables. Suppressed groups still fall
+    back to independent draws. Use the data to test code, not findings.
   - Vital signs are taken in rounds that share a timestamp, as in the real files.
   - Categories that were suppressed on Bianca (fewer than 10 patients) never appear.
 
@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import time
 from pathlib import Path
 
@@ -46,6 +47,9 @@ REF = HERE / "data_info"
 _spec = importlib.util.spec_from_file_location("build", HERE / "02_build.py")
 build = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(build)
+
+from joint_synth import CONDITION_KEYS, JointStats, context_keys
+from missingness_synth import MissingnessModel, VITAL_CONCEPTS, VITAL_VARIABLES, add_base_design
 
 HOME_HOSPITAL_P = 0.8        # ASSUMPTION: share of a patient's visits at their most-used hospital
 TOP_CODE_EXTRA_P = 0.3       # ASSUMPTION: "10+" becomes 10 + Geometric(p) - 1
@@ -105,7 +109,8 @@ class Stats:
 # Samplers
 # =============================================================================
 
-def sample_quantiles(row: pd.Series | None, n: int, rng: np.random.Generator) -> np.ndarray:
+def sample_quantiles(row: pd.Series | None, n: int, rng: np.random.Generator,
+                     u: np.ndarray | None = None) -> np.ndarray:
     """n draws from the distribution described by a row of percentiles and null_rate."""
     if row is None or n == 0:
         return np.full(n, np.nan)
@@ -115,7 +120,7 @@ def sample_quantiles(row: pd.Series | None, n: int, rng: np.random.Generator) ->
     p, x = np.array([q[0] for q in qs]), np.array([q[1] for q in qs], dtype=float)
     p = np.r_[0.0, p, 1.0]
     x = np.r_[x[0] - (x[1] - x[0]), x, x[-1] + (x[-1] - x[-2])]
-    out = np.interp(rng.random(n), p, x)
+    out = np.interp(rng.random(n) if u is None else u, p, x)
     null = row.get("null_rate", 0.0)
     if pd.notna(null) and null > 0:
         out[rng.random(n) < null] = np.nan
@@ -171,6 +176,53 @@ def nullable(s: pd.Series) -> pd.Series:
     return s.astype("string").replace({"<missing>": pd.NA})
 
 
+def complaints_from_stats(st: Stats) -> list[str]:
+    cat = st("ed_visits_categorical")
+    if cat is None or cat.empty:
+        return []
+    sel = cat[cat["column"].astype(str) == "ed_presented_complaint_std"]["value"]
+    return [str(x) for x in sel.dropna().tolist()]
+
+
+def _draw_latent(domain: str, source: str, variables: list[str], ed: pd.DataFrame,
+                 marginal_rows: dict[str, pd.Series | None], joint: JointStats,
+                 rng: np.random.Generator) -> pd.DataFrame:
+    out = pd.DataFrame(np.nan, index=ed.index, columns=variables)
+    ctx = context_keys(ed)
+    u = joint.uniforms(domain, "all", source, variables, len(ed), rng)
+    for j, name in enumerate(variables):
+        for key, labels in ctx.groupby(CONDITION_KEYS, dropna=False).groups.items():
+            idx = np.asarray(list(labels), dtype=int)
+            row_ctx = dict(zip(CONDITION_KEYS, key))
+            row = joint.conditional_row(domain, "all", source, name, row_ctx)
+            if row is None:
+                row = marginal_rows.get(name)
+            out.iloc[idx, j] = sample_quantiles(row, len(idx), rng, u[idx, j])
+    return out
+
+
+def latent_vital_values(st: Stats, ed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+    values = st("vitals_values")
+    joint = JointStats(st.folder)
+    rows = {}
+    for name in VITAL_VARIABLES:
+        candidates = lookup(values, concept=VITAL_CONCEPTS[name])
+        rows[name] = first_row(choose(candidates, len(ed), rng)) if not candidates.empty else None
+    return _draw_latent("vital", "", VITAL_VARIABLES, ed, rows, joint, rng)
+
+
+def latent_lab_values(st: Stats, ed: pd.DataFrame, source: str, concepts: list[str],
+                      rng: np.random.Generator) -> pd.DataFrame:
+    values = st("labs_values")
+    joint = JointStats(st.folder)
+    variables = [f"lab_{c}" for c in concepts]
+    rows = {}
+    for concept, name in zip(concepts, variables):
+        candidates = lookup(values, source=source, term_name=concept)
+        rows[name] = first_row(choose(candidates, len(ed), rng)) if not candidates.empty else None
+    return _draw_latent("lab", source, variables, ed, rows, joint, rng)
+
+
 # =============================================================================
 # Patients, visits, deaths
 # =============================================================================
@@ -190,8 +242,9 @@ def make_patients(st: Stats, n: int, rng: np.random.Generator) -> pd.DataFrame:
 
 
 def random_datetimes(hospitals: np.ndarray, st: Stats, rng: np.random.Generator) -> pd.Series:
-    """Arrival times following the year, weekday and hour distributions per hospital."""
+    """Arrival times following the year, month, weekday and hour distributions per hospital."""
     by_year, by_wd, by_hour = st("ed_visits_hospital_year"), st("ed_visits_hospital_weekday"), st("ed_visits_hospital_hour")
+    joint = JointStats(st.folder)
     out = pd.Series(pd.NaT, index=range(len(hospitals)), dtype="datetime64[us, UTC]")
     for h in np.unique(hospitals):
         idx = np.flatnonzero(hospitals == h)
@@ -199,8 +252,16 @@ def random_datetimes(hospitals: np.ndarray, st: Stats, rng: np.random.Generator)
         year = draw(lookup(by_year, ed_hospital=h), "year", k, rng, lambda m: draw(by_year, "year", m, rng, lambda _: np.full(m, 2015)))
         wd = draw(lookup(by_wd, ed_hospital=h), "weekday", k, rng, lambda m: rng.integers(0, 7, m))
         hour = draw(lookup(by_hour, ed_hospital=h), "hour", k, rng, lambda m: rng.integers(0, 24, m))
-        day = pd.to_datetime(year.astype(str)) + pd.to_timedelta(rng.integers(0, 358, k), unit="D")
-        day = day + pd.to_timedelta((wd - day.day_of_week.to_numpy()) % 7, unit="D")
+        months = joint.month_weights(h)
+        if months.empty:
+            day = pd.to_datetime(year.astype(str)) + pd.to_timedelta(rng.integers(0, 358, k), unit="D")
+            day = day + pd.to_timedelta((wd - day.day_of_week.to_numpy()) % 7, unit="D")
+        else:
+            month = draw(months, "month", k, rng, lambda m: rng.integers(1, 13, m)).astype(int)
+            first = pd.DatetimeIndex(pd.to_datetime(dict(year=np.asarray(year, dtype=int), month=month, day=np.ones(k, dtype=int))))
+            offset = (wd - first.dayofweek) % 7
+            weeks = ((first.days_in_month - 1 - offset) // 7) + 1
+            day = first + pd.to_timedelta(offset + 7 * rng.integers(0, weeks), unit="D")
         local = day + pd.to_timedelta(hour * 60 + rng.integers(0, 60, k), unit="min")
         utc = local.tz_localize(STOCKHOLM, ambiguous="NaT", nonexistent="shift_forward").tz_convert("UTC")
         out.iloc[idx] = utc.to_numpy()
@@ -239,6 +300,23 @@ def make_visits(st: Stats, pts: pd.DataFrame, rng: np.random.Generator) -> pd.Da
             opts = lookup(cat, ed_hospital=h, column=col)
             if not opts.empty:
                 ed.loc[idx, col] = choose(opts, len(idx), rng)["value"].to_numpy()
+    joint = JointStats(st.folder)
+    for a, b in [("ed_presented_complaint_std", "ed_priority_in"),
+                 ("ed_presented_complaint_std", "ed_arrival_type"),
+                 ("ed_presented_complaint_std", "ed_exit_to"),
+                 ("ed_age_band", "ed_priority_in"),
+                 ("is_male", "ed_priority_in"),
+                 ("ed_priority_in", "ed_exit_to")]:
+        if a not in ed:
+            if a == "ed_age_band":
+                ed[a] = context_keys(ed)["age_band"].to_numpy()
+            else:
+                continue
+        for (h, va), labels in ed.groupby(["ed_hospital", a], dropna=False).groups.items():
+            opts = joint.categorical_options(str(h), a, str(va), b)
+            if opts.empty:
+                continue
+            ed.loc[list(labels), b] = choose(opts, len(labels), rng)["value_b"].to_numpy()
     for col in ["ed_priority_in", "ed_priority_out"]:
         ed[col] = pd.to_numeric(ed[col], errors="coerce")
     ed["ed_inexact_time"] = as_bool(ed["ed_inexact_time"]).fillna(False).astype(bool)
@@ -270,7 +348,22 @@ def make_visits(st: Stats, pts: pd.DataFrame, rng: np.random.Generator) -> pd.Da
 def make_deaths(st: Stats, pts: pd.DataFrame, ed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     died = st("patients_died")
     share = scalar(died, "share_died", 0.0)
-    cand = pts[rng.random(len(pts)) < share][["lopnr_swed", "is_male"]].copy()
+    joint = JointStats(st.folder)
+    first = ed.sort_values("ed_arrival_datetime").drop_duplicates("lopnr_swed").reset_index(drop=True)
+    ctx = context_keys(first)
+    profile = pd.DataFrame({
+        "ed_hospital": first["ed_hospital"].astype(str).to_numpy(),
+        "age_band": ctx["age_band"].to_numpy(), "sex": ctx["sex"].to_numpy(), "complaint": ctx["complaint"].to_numpy(),
+    }, index=first["lopnr_swed"].to_numpy()).reindex(pts["lopnr_swed"].to_numpy())
+    raw = np.array([joint.mortality_rate(str(r.ed_hospital), r.age_band, r.sex, r.complaint, share)
+                    for r in profile.itertuples()], dtype=float)
+    target = int(round(share * len(pts)))
+    scale = target / max(raw.sum(), 1e-12)
+    prob = np.clip(raw * scale, 0, 1)
+    for _ in range(5):
+        scale *= target / max(prob.sum(), 1e-12)
+        prob = np.clip(raw * scale, 0, 1)
+    cand = pts[rng.random(len(pts)) < prob][["lopnr_swed", "is_male"]].copy()
     last = ed.groupby("lopnr_swed")["ed_arrival_datetime"].max().dt.tz_localize(None).dt.normalize()
     after = st("deaths_days_after_last_visit")
     days = np.maximum(0, np.round(sample_quantiles(None if after is None else first_row(after), len(cand), rng)))
@@ -316,7 +409,7 @@ def finish_patients(pts: pd.DataFrame, ed: pd.DataFrame, dr: pd.DataFrame, rng: 
 # Vital signs and labs
 # =============================================================================
 
-def make_vitals(st: Stats, ed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+def _make_vitals_legacy(st: Stats, ed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     share, counts, timing = st("vitals_share_of_visits"), st("vitals_count_per_visit"), st("vitals_timing")
     src, units, values = st("vitals_source_by_hospital"), st("vitals_units"), st("vitals_values")
     implaus, linked_share = st("vitals_implausible"), st("vitals_linked")
@@ -387,13 +480,163 @@ def make_vitals(st: Stats, ed: pd.DataFrame, rng: np.random.Generator) -> pd.Dat
     return add_unlinked(v, linked_share, rng)
 
 
-def make_labs(st: Stats, ed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+def make_vitals(st: Stats, ed: pd.DataFrame, rng: np.random.Generator, y: np.ndarray,
+                missingness: MissingnessModel | None = None, gx_scale: float = 1.0) -> pd.DataFrame:
+    if missingness is None or not missingness.available:
+        return _make_vitals_legacy(st, ed, rng)
+    counts, timing = st("vitals_count_per_visit"), st("vitals_timing")
+    src, units, values = st("vitals_source_by_hospital"), st("vitals_units"), st("vitals_values")
+    implaus, linked_share = st("vitals_implausible"), st("vitals_linked")
+    if values is None or src is None:
+        return pd.DataFrame(columns=build.VITALS_SCHEMA.names)
+    snomed = {k: s or None for k, _, s, _ in build.VITAL_CONCEPTS}
+
+    base = ed.reset_index(drop=True).copy()
+    base["died30"] = np.asarray(y, dtype=float)
+    latent = latent_vital_values(st, base, rng)
+    mask = missingness.sample(base, latent, rng, gx_scale=gx_scale, group_col="ed_hospital")
+    per = []
+    for j, name in enumerate(VITAL_VARIABLES):
+        use = np.flatnonzero(mask[name].to_numpy())
+        if not len(use):
+            continue
+        d = base.iloc[use][["ed_visit_id", "ed_hospital", "lopnr_swed", "ed_arrival_datetime"]].copy()
+        d["concept"] = VITAL_CONCEPTS[name]
+        d["latent_value"] = latent.iloc[use, j].to_numpy()
+        per.append(d)
+    if not per:
+        return pd.DataFrame(columns=build.VITALS_SCHEMA.names)
+    per = pd.concat(per, ignore_index=True)
+    per["k"] = 1
+    if counts is not None:
+        for (h, c), loc in per.groupby(["ed_hospital", "concept"]).groups.items():
+            opts = lookup(counts, ed_hospital=h, concept=c)
+            k = top_coded_counts(pd.Series(draw(opts, "per_visit", len(loc), rng,
+                                                lambda m: np.ones(m, int))), rng)
+            per.loc[loc, "k"] = k
+
+    rounds = per.groupby("ed_visit_id")["k"].max()
+    hosp = base.set_index("ed_visit_id")["ed_hospital"]
+    anchor = timing.sort_values("n").groupby("ed_hospital").last() if timing is not None else pd.DataFrame()
+    rv = np.repeat(rounds.index.to_numpy(), rounds.to_numpy())
+    off = np.empty(len(rv))
+    rh = hosp.loc[rv].to_numpy()
+    for h in np.unique(rh):
+        m = rh == h
+        off[m] = sample_quantiles(anchor.loc[h] if h in anchor.index else None, m.sum(), rng)
+    off = np.nan_to_num(off, nan=0.0)
+    order = np.lexsort((off, rv))
+    rv, off = rv[order], off[order]
+    start = pd.Series(np.flatnonzero(np.r_[True, rv[1:] != rv[:-1]]), index=np.unique(rv))
+
+    rows = per.loc[per.index.repeat(per["k"])].reset_index(drop=True)
+    rows["round"] = rows.groupby(["ed_visit_id", "concept"]).cumcount()
+    rows["offset"] = off[start.loc[rows["ed_visit_id"]].to_numpy() + rows["round"].to_numpy()]
+    rows["datetime_analysis"] = rows["ed_arrival_datetime"] + pd.to_timedelta(np.round(rows["offset"]), unit="min")
+
+    parts = []
+    for (h, c), g in rows.groupby(["ed_hospital", "concept"]):
+        opts = lookup(src, ed_hospital=h, concept=c)
+        opts = opts if not opts.empty else lookup(src, ed_hospital=h)
+        if opts.empty:
+            continue
+        g = g.reset_index(drop=True)
+        g[["source", "from"]] = choose(opts, len(g), rng)[["source", "from"]].to_numpy()
+        for (s, f), gg in g.groupby(["source", "from"]):
+            gg = gg.copy()
+            u = lookup(units, source=s, concept=c, **{"from": f})
+            if not u.empty:
+                pick = choose(u, len(gg), rng)
+                gg["term_name"], gg["unit_original"] = pick["term_name"].to_numpy(), nullable(pick["unit_original"]).to_numpy()
+                gg["unit"], gg["unit_status"] = pick["unit"].to_numpy(), pick["unit_status"].to_numpy()
+            else:
+                gg["term_name"], gg["unit_original"], gg["unit"], gg["unit_status"] = c, None, None, "assumed"
+            lo, hi = build.PLAUSIBLE.get(c, (-np.inf, np.inf))
+            val = np.round(np.clip(gg["latent_value"].to_numpy(dtype=float), lo, hi), DECIMALS.get(c, 0))
+            ir = first_row(lookup(implaus, source=s, concept=c, **{"from": f}))
+            bad = rng.random(len(gg)) < (ir["share_implausible"] if ir is not None else 0)
+            val[bad & np.isfinite(hi)] = hi * 3
+            gg["value"], gg["implausible"] = val, bad & np.isfinite(hi)
+            parts.append(gg.drop(columns="latent_value"))
+    if not parts:
+        return pd.DataFrame(columns=build.VITALS_SCHEMA.names)
+    v = pd.concat(parts, ignore_index=True)
+    v["concept"] = v["concept"].astype(str)
+    v["snomed_id"] = v["concept"].map(snomed)
+    v["term_id"] = None
+    return add_unlinked(v, linked_share, rng)
+
+
+def make_labs(st: Stats, ed: pd.DataFrame, rng: np.random.Generator, y: np.ndarray,
+              missingness: list[MissingnessModel] | None = None, gx_scale: float = 1.0) -> pd.DataFrame:
     share, per_visit, timing = st("labs_share_of_visits"), st("labs_rows_per_visit"), st("labs_timing")
     src, terms, values, linked_share = st("labs_source_by_hospital"), st("labs_terms"), st("labs_values"), st("labs_linked")
-    if share is None or terms is None:
+    models = [m for m in (missingness or []) if m.available]
+    if terms is None or (share is None and not models):
         return pd.DataFrame(columns=build.LABS_SCHEMA.names)
     sn = pd.read_csv(REF / "swed_lab_meas_to_snomed.csv", dtype=str).drop_duplicates("term_name").set_index("term_name") \
         if (REF / "swed_lab_meas_to_snomed.csv").exists() else pd.DataFrame(columns=["snomed_swe"])
+
+    if models:
+        parts = []
+        for model in models:
+            concepts = [v.replace("lab_", "", 1) for v in model.variables]
+            sources = sorted({key[1] for key in model.patterns_by_key})
+            for source in sources:
+                hospitals = sorted({key[0] for key in model.patterns_by_key if key[1] == source})
+                vis = ed[ed["ed_hospital"].isin(hospitals)].reset_index(drop=True).copy()
+                if vis.empty:
+                    continue
+                vis["source"] = source
+                if "died30" not in vis:
+                    vis["died30"] = 0.0
+                latent = latent_lab_values(st, vis, source, concepts, rng)
+                mask = model.sample(vis, latent, rng, gx_scale=gx_scale,
+                                    group_col="ed_hospital", source_col="source")
+                for j, concept in enumerate(concepts):
+                    use = np.flatnonzero(mask[f"lab_{concept}"].to_numpy())
+                    if not len(use):
+                        continue
+                    g = vis.iloc[use].copy()
+                    g["concept"] = concept
+                    g["latent_value"] = latent.iloc[use, j].to_numpy()
+                    g["k"] = 1
+                    if per_visit is not None:
+                        for h, loc in g.groupby("ed_hospital").groups.items():
+                            row = first_row(lookup(per_visit, ed_hospital=h, source=source))
+                            k = np.maximum(1, np.round(np.nan_to_num(
+                                sample_quantiles(row, len(loc), rng), nan=1))).astype(int)
+                            g.loc[loc, "k"] = k
+                    g = g.loc[g.index.repeat(g["k"])].reset_index(drop=True)
+                    g["from"] = None
+                    if src is not None:
+                        for h, loc in g.groupby("ed_hospital").groups.items():
+                            opts = lookup(src, ed_hospital=h, source=source)
+                            if not opts.empty:
+                                g.loc[loc, "from"] = choose(opts, len(loc), rng)["from"].to_numpy()
+                    off = np.zeros(len(g))
+                    if timing is not None:
+                        for h, loc in g.groupby("ed_hospital").groups.items():
+                            row = first_row(lookup(timing, ed_hospital=h, source=source))
+                            off[loc] = np.nan_to_num(sample_quantiles(row, len(loc), rng))
+                    g["datetime_analysis"] = g["ed_arrival_datetime"] + pd.to_timedelta(np.round(off), unit="min")
+                    for f, gg0 in g.groupby("from", dropna=False):
+                        gg = gg0.copy()
+                        term = first_row(lookup(terms, source=source, term_name=concept, **{"from": f}))
+                        gg["term_name"] = concept
+                        gg["snomed_id"] = term["snomed_id"] if term is not None else None
+                        gg["unit"] = term["unit"] if term is not None else None
+                        gg["unit_status"] = term["unit_status"] if term is not None else "assumed"
+                        gg["value_num"] = np.round(np.asarray(gg["latent_value"], dtype=float), 2)
+                        parts.append(gg)
+        if not parts:
+            return pd.DataFrame(columns=build.LABS_SCHEMA.names)
+        lab = pd.concat(parts, ignore_index=True)
+        lab["snomed_swe"] = lab["term_name"].map(sn["snomed_swe"]) if "snomed_swe" in sn else None
+        lab["snomed_quality"] = None
+        lab["value_str"] = lab["value_num"].map(lambda x: None if pd.isna(x) else f"{x:g}")
+        lab["lt_flag"], lab["gt_flag"], lab["term_id"] = False, False, None
+        return add_unlinked(lab, linked_share, rng)
 
     parts = []
     for r in share.itertuples():
@@ -445,7 +688,7 @@ def add_unlinked(df: pd.DataFrame, linked_share: pd.DataFrame | None, rng: np.ra
         n = int(round(len(g) * (1 - s) / s))
         e = g.sample(n, replace=True, random_state=int(rng.integers(1 << 31))).copy()
         e["datetime_analysis"] += pd.to_timedelta(rng.integers(*UNLINKED_DAYS, n), unit="D")
-        e["ed_visit_id"] = pd.NA
+        e["ed_visit_id"] = pd.array([pd.NA] * len(e), dtype="Int64")
         extra.append(e)
     return pd.concat([df, *extra], ignore_index=True) if extra else df
 
@@ -454,15 +697,33 @@ def add_unlinked(df: pd.DataFrame, linked_share: pd.DataFrame | None, rng: np.ra
 # Diagnoses
 # =============================================================================
 
-def make_diagnoses(st: Stats, pts: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+def make_diagnoses(st: Stats, pts: pd.DataFrame, ed: pd.DataFrame, dr: pd.DataFrame,
+                   rng: np.random.Generator) -> pd.DataFrame:
     icd, years, per, share = st("diagnoses_icd10_3"), st("diagnoses_year"), st("diagnoses_per_patient"), st("diagnoses_share_patients")
     if icd is None or icd.empty:
         return pd.DataFrame(columns=DIAG_SCHEMA.names)
     s = scalar(share, "share_with_diagnosis", 1.0)
     who = pts["lopnr_swed"].to_numpy()[rng.random(len(pts)) < s]
     k = np.maximum(1, top_coded_counts(pd.Series(draw(per, "per_patient", len(who), rng, lambda m: np.ones(m, int))), rng))
-    d = choose(icd, int(k.sum()), rng)[["care_level", "diag_main", "icd10_3"]]
-    d.insert(0, "lopnr_swed", np.repeat(who, k))
+    joint = JointStats(st.folder)
+    first = ed.sort_values("ed_arrival_datetime").drop_duplicates("lopnr_swed").reset_index(drop=True)
+    ctx = context_keys(first)
+    death_map = pd.Series(pd.to_datetime(dr["date_death_minimp"]).to_numpy(), index=dr["lopnr_swed"].to_numpy())
+    start = first["ed_arrival_datetime"].dt.tz_convert(STOCKHOLM).dt.tz_localize(None).dt.normalize()
+    days = (first["lopnr_swed"].map(death_map) - start).dt.days
+    outcome = days.between(0, 30).astype(int)
+    profile = pd.DataFrame({
+        "age_band": ctx["age_band"].to_numpy(), "sex": ctx["sex"].to_numpy(), "complaint": ctx["complaint"].to_numpy(),
+        "outcome": outcome.reindex(first["lopnr_swed"]).to_numpy(),
+    }, index=first["lopnr_swed"].to_numpy()).reindex(who)
+    cols = ["care_level", "diag_main", "icd10_3"]
+    parts = []
+    for pid, n in zip(who, k):
+        r = profile.loc[pid]
+        opts = joint.diagnosis_options(str(r.age_band), str(r.sex), str(r.complaint), str(r.outcome))
+        opts = opts if not opts.empty else icd
+        parts.append(choose(opts, int(n), rng)[cols].assign(lopnr_swed=pid))
+    d = pd.concat(parts, ignore_index=True)
     d["INDATUM"] = pd.NaT
     for cl, idx in d.groupby("care_level").groups.items():
         y = lookup(years, care_level=cl)
@@ -482,32 +743,76 @@ def make_diagnoses(st: Stats, pts: pd.DataFrame, rng: np.random.Generator) -> pd
 # Output and validation
 # =============================================================================
 
-def write(df: pd.DataFrame, schema: pa.Schema, dst: Path, stats_dir: Path) -> None:
+def write(df: pd.DataFrame, schema: pa.Schema, dst: Path, stats_dir: Path,
+          extra: dict[str, str] | None = None) -> None:
     t = pa.Table.from_pandas(df.reindex(columns=schema.names), schema=schema, preserve_index=False)
-    t = t.replace_schema_metadata({**(t.schema.metadata or {}), b"synthetic": b"true",
-                                   b"synthetic_from": str(stats_dir.name).encode()})
+    meta = {**(t.schema.metadata or {}), b"synthetic": b"true",
+            b"synthetic_from": str(stats_dir.name).encode()}
+    for k, v in (extra or {}).items():
+        meta[k.encode()] = str(v).encode()
+    t = t.replace_schema_metadata(meta)
     pq.write_table(t, dst, compression="zstd")
     log(f"wrote {dst.name}: {len(df):,} rows")
 
 
-def validate(st: Stats, out: Path) -> None:
+def validate(st: Stats, out: Path, models: list[MissingnessModel] | None = None) -> None:
     log("validation: synthetic vs exported statistics")
     ed = pd.read_parquet(out / "ed_visits.parquet")
     hy = st("ed_visits_hospital_year").groupby("ed_hospital")["n"].sum()
     cmp = pd.DataFrame({"stats_share": hy / hy.sum(), "synth_share": ed["ed_hospital"].value_counts(normalize=True)}).round(3)
     print(cmp.to_string())
+    joint = JointStats(st.folder)
+    months = st("ed_visits_hospital_month")
+    if months is not None and not months.empty:
+        month = ed["ed_arrival_datetime"].dt.tz_convert(STOCKHOLM).dt.month
+        ms = pd.DataFrame({"stats_share": months.groupby("month")["n"].sum() / months["n"].sum(),
+                           "synth_share": month.value_counts(normalize=True).sort_index()}).round(3)
+        print(ms.to_string())
     vals = st("vitals_values")
     if vals is not None and (out / "vitals.parquet").exists():
         v = pd.read_parquet(out / "vitals.parquet")
         v = v[~v["implausible"]]
         q = v.groupby(["source", "from", "concept"])["value"].median().rename("synth_q50").reset_index()
         print(vals[["source", "from", "concept", "q50"]].merge(q, on=["source", "from", "concept"]).to_string(index=False))
+        corr = joint.correlation
+        if not corr.empty:
+            wide = v.pivot_table(index="ed_visit_id", columns="concept", values="value", aggfunc="first")
+            rows = []
+            for r in corr[(corr["domain"] == "vital") & (corr["source"].fillna("") == "")].itertuples():
+                a = str(r.var_a) if str(r.var_a) in wide else VITAL_CONCEPTS.get(str(r.var_a))
+                b = str(r.var_b) if str(r.var_b) in wide else VITAL_CONCEPTS.get(str(r.var_b))
+                if a not in wide or b not in wide:
+                    continue
+                synth = wide[[a, b]].corr(method="spearman").iloc[0, 1]
+                rows.append({"pair": f"{a}-{b}", "exported_rho": round(float(r.rho), 3),
+                             "synth_rho": round(float(synth), 3), "abs_diff": round(abs(float(r.rho) - float(synth)), 3)})
+            if rows:
+                print(pd.DataFrame(rows).to_string(index=False))
     labs = st("labs_terms")
     if labs is not None and (out / "lab_meas.parquet").exists():
         lab = pd.read_parquet(out / "lab_meas.parquet")
         top = labs.groupby("term_name")["n"].sum().nlargest(8)
         syn = lab["term_name"].value_counts(normalize=True)
         print(pd.DataFrame({"stats_share": (top / labs["n"].sum()).round(3), "synth_share": syn.reindex(top.index).round(3)}).to_string())
+    for model in models or []:
+        if model is None or not model.available:
+            continue
+        rows = []
+        source = pd.read_parquet(out / ("vitals.parquet" if model.domain == "vital" else "lab_meas.parquet"))
+        for (group, lab_source, variable), target in model.rates.items():
+            visits = ed[ed["ed_hospital"] == group]
+            if visits.empty:
+                continue
+            if model.domain == "vital":
+                seen = source[source["concept"] == VITAL_CONCEPTS.get(variable)]["ed_visit_id"]
+            else:
+                seen = source[(source["source"] == lab_source)
+                              & (source["term_name"] == variable.replace("lab_", "", 1))]["ed_visit_id"]
+            synth = float(seen[seen.isin(visits["ed_visit_id"])].nunique() / len(visits))
+            rows.append({"domain": model.domain, "hospital": group, "source": lab_source,
+                         "variable": variable, "target_rate": round(target, 3), "synth_rate": round(synth, 3)})
+        if rows:
+            print(pd.DataFrame(rows).to_string(index=False))
 
 
 def main() -> None:
@@ -517,6 +822,10 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=20261026)
     ap.add_argument("--out", type=Path, help="default: synthetic_<stats folder name>")
     ap.add_argument("--validate", action="store_true", help="print synthetic vs exported statistics")
+    ap.add_argument("--missingness", choices=("auto", "legacy", "fit"), default="auto",
+                    help="use exported missingness assumptions when present")
+    ap.add_argument("--gx-scale", type=float, default=1.0,
+                    help="scale fitted MNAR own-value coefficients for sensitivity analysis")
     args = ap.parse_args()
     out = args.out or Path(f"synthetic_{args.stats.name}")
     out.mkdir(parents=True, exist_ok=True)
@@ -525,17 +834,49 @@ def main() -> None:
     log(f"stats: {args.stats}")
     log(f"out:   {out}")
 
+    vital_model, lab_models = None, []
+    if args.missingness != "legacy":
+        vital_model = MissingnessModel(args.stats, "vital", VITAL_VARIABLES, "missingness_patterns")
+        config_path = args.stats / "missingness_config.json"
+        if config_path.exists():
+            config = json.loads(config_path.read_text())
+            for source, concepts in sorted(config.get("lab_concepts", {}).items()):
+                lab_models.append(MissingnessModel(
+                    args.stats, "lab", [f"lab_{c}" for c in concepts], "lab_patterns", source=source))
+        if args.missingness == "fit" and not any(m and m.available for m in [vital_model, *lab_models]):
+            raise SystemExit("no usable missingness assumptions found in the stats folder")
+    meta = {"missingness_mode": args.missingness, "gx_scale": str(args.gx_scale)}
+    joint = JointStats(args.stats)
+    if joint.available:
+        meta["joint_stats"] = "true"
+    if vital_model and vital_model.available:
+        meta["vital_missingness"] = "fit"
+    lab_fit_sources = [m.source for m in lab_models if m.available and m.source]
+    if lab_fit_sources:
+        meta["lab_missingness"] = "fit"
+        meta["lab_sources"] = ",".join(sorted(lab_fit_sources))
+
     pts = make_patients(st, args.n_patients, rng)
     ed = make_visits(st, pts, rng)
     dr = make_deaths(st, pts, ed, rng)
-    write(ed, ED_SCHEMA, out / "ed_visits.parquet", args.stats)
-    write(dr, DEATHS_SCHEMA, out / "deaths.parquet", args.stats)
-    write(finish_patients(pts, ed, dr, rng), PATIENTS_SCHEMA, out / "patients.parquet", args.stats)
-    write(make_vitals(st, ed, rng), build.VITALS_SCHEMA, out / "vitals.parquet", args.stats)
-    write(make_labs(st, ed, rng), build.LABS_SCHEMA, out / "lab_meas.parquet", args.stats)
-    write(make_diagnoses(st, pts, rng), DIAG_SCHEMA, out / "diagnoses.parquet", args.stats)
+    death_by_patient = pd.Series(pd.to_datetime(dr["date_death_minimp"]).to_numpy(),
+                                 index=dr["lopnr_swed"].to_numpy())
+    arrival = ed["ed_arrival_datetime"].dt.tz_convert(STOCKHOLM).dt.tz_localize(None).dt.normalize()
+    days = (pd.to_datetime(ed["lopnr_swed"].map(death_by_patient)) - arrival).dt.days
+    y = days.between(0, 30).astype(float).to_numpy()
+    ed = add_base_design(ed, complaints_from_stats(st))
+    ed["died30"] = y
+
+    write(ed, ED_SCHEMA, out / "ed_visits.parquet", args.stats, meta)
+    write(dr, DEATHS_SCHEMA, out / "deaths.parquet", args.stats, meta)
+    write(finish_patients(pts, ed, dr, rng), PATIENTS_SCHEMA, out / "patients.parquet", args.stats, meta)
+    write(make_vitals(st, ed, rng, y, vital_model, args.gx_scale), build.VITALS_SCHEMA,
+          out / "vitals.parquet", args.stats, meta)
+    write(make_labs(st, ed, rng, y, lab_models, args.gx_scale), build.LABS_SCHEMA,
+          out / "lab_meas.parquet", args.stats, meta)
+    write(make_diagnoses(st, pts, ed, dr, rng), DIAG_SCHEMA, out / "diagnoses.parquet", args.stats, meta)
     if args.validate:
-        validate(st, out)
+        validate(st, out, [m for m in (vital_model, *lab_models) if m])
     log("done")
 
 

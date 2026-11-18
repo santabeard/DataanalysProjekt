@@ -92,7 +92,7 @@ def prepare(df, base_cols, vital_cols, outcome_col, log_vars=(), selection_cols=
     x_loc, x_scale = np.nanmean(X, 0), np.nanstd(X, 0)
     X = (X - x_loc) / x_scale
     S = df[list(selection_cols)].to_numpy(float) if len(selection_cols) else None
-    return dict(Z=Z, X=X, y=df[outcome_col].to_numpy(float), z_scale=z_scale,
+    return dict(Z=Z, X=X, y=df[outcome_col].to_numpy(float), z_loc=z_loc, z_scale=z_scale,
                 x_loc=x_loc, x_scale=x_scale, base_cols=list(base_cols), vital_cols=list(vital_cols),
                 S=S, selection_cols=list(selection_cols))
 

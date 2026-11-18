@@ -18,6 +18,7 @@ for mod in ["argparse", "csv", "re", "time", "collections"]:
     check(f"import {mod}", lambda m=mod: __import__(m) and None)
 check("import numpy", lambda: __import__("numpy").__version__)
 check("import pandas", lambda: __import__("pandas").__version__)
+check("import scipy", lambda: __import__("scipy").__version__)
 check("import pyarrow", lambda: __import__("pyarrow").__version__)
 for mod in ["pyarrow.compute", "pyarrow.dataset", "pyarrow.parquet"]:
     check(f"import {mod}", lambda m=mod: __import__(m) and None)

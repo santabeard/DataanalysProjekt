@@ -18,5 +18,10 @@ export SWED_WORK="$SLURM_SUBMIT_DIR"
 export SWED_DATA="${SWED_DATA:-$HOME/Desktop/data_std/subset}"
 cd "$SWED_WORK"
 
+BUILT="$HOME/Desktop/data_std/built_$(basename "$SWED_DATA")"
+OUT="$HOME/Desktop/data_std/export_stats_$(basename "$BUILT")"
+
 python 02_build.py
-python 03_export_stats.py --built "$HOME/Desktop/data_std/built_$(basename "$SWED_DATA")"
+python 03_export_stats.py --built "$BUILT"
+python 03b_export_missingness.py --built "$BUILT" --out "$OUT"
+python 03c_export_joint_stats.py --built "$BUILT" --out "$OUT"
