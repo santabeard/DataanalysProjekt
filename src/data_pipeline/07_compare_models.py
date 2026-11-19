@@ -14,6 +14,7 @@ Writes scores.csv (aggregated, counts rounded to 5).
     python 07_compare_models.py
 """
 
+import argparse
 import os
 from pathlib import Path
 
@@ -26,10 +27,18 @@ import numpy as np
 import pandas as pd
 import pymc as pm
 
-ROOT = Path(os.environ.get("SWED_OUT", "/home/theon/Desktop/data_std"))
-BUILT = ROOT / "built_subset"
-ATLAS = ROOT / "out" / "atlas_mortality_posterior.npz"
-OUT = ROOT / "compare_models"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline"))
+
+ap = argparse.ArgumentParser(description=__doc__)
+ap.add_argument("--built", type=Path, default=ROOT / "built_synth_subset_50k")
+ap.add_argument("--atlas", type=Path, default=REPO_ROOT / "Data" / "ed_atlas" / "atlas_mortality_posterior.npz")
+ap.add_argument("--out", type=Path, default=ROOT / "compare_models")
+args = ap.parse_args()
+
+BUILT = args.built
+ATLAS = args.atlas
+OUT = args.out
 
 VITALS = {"temp": "body_temp", "sbp": "systolic_bp", "pulse": "pulse_rate"}  # name -> concept in vitals.parquet
 TOP_COMPLAINTS = 8

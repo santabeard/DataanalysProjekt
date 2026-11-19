@@ -27,7 +27,9 @@ import pandas as pd
 from scipy.optimize import brentq
 from scipy.special import expit, ndtr
 
-import simulate_data as sd
+from preprocessing import simulate_data as sd
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 LABS = ["glucose", "lactate", "creatinine", "wbc", "sodium"]
 
@@ -123,7 +125,7 @@ def main():
     ap.add_argument("--K", type=int, default=30)
     ap.add_argument("--W", type=int, default=12)
     ap.add_argument("--seed", type=int, default=20261027)
-    ap.add_argument("--out", default=str(Path(__file__).parent / "data_h"))
+    ap.add_argument("--out", default=str(REPO_ROOT / "Data" / "evaluation" / "data_h"))
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

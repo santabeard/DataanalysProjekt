@@ -6,7 +6,7 @@
 #SBATCH -J swed_compare
 #SBATCH -o swed_compare_%j.log
 
-# Submit from the folder holding 07_compare_models.py:   sbatch 07_compare_models.sbatch
+# Submit from src/data_pipeline:   sbatch 07_compare_models.sbatch
 
 set -euo pipefail
 

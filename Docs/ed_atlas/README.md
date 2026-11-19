@@ -20,8 +20,8 @@ On first run, prediction grids are computed from the shipped posteriors and cach
 | File | What |
 |------|------|
 | `_lookup.py` | Module code. `EdAtlas` (grid lookup) + `ParameterPosterior` (exact structured covariance) |
-| `data/*.npz` | Shipped posteriors: MVN approximation of PyMC MCMC posteriors (<1% error vs samples) |
-| `convert_traces.py` | One-off script to produce the npz files from raw PyMC NetCDF traces into `data/`. Not needed at runtime. Run with `uv run --with arviz --with netcdf4 --with patsy python ed_atlas/convert_traces.py` |
+| `Data/ed_atlas/*.npz` | Shipped posteriors: MVN approximation of PyMC MCMC posteriors (<1% error vs samples) |
+| `src/ed_atlas/convert_traces.py` | One-off script to produce the npz files from raw PyMC NetCDF traces into `Data/ed_atlas/`. Not needed at runtime. Run with `python src/ed_atlas/convert_traces.py` |
 
 ## Dependencies
 

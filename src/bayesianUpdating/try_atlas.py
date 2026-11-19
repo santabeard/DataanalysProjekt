@@ -1,4 +1,4 @@
-from synth_ed_atlas import EdAtlas
+from bayesianUpdating.synth_ed_atlas import EdAtlas
 
 atlas = EdAtlas()
 print(atlas)

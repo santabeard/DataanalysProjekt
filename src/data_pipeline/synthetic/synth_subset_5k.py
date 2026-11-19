@@ -3,9 +3,9 @@
 
 Same file names, columns and types as the real subset, so 02_build.py and the later steps run on it:
 
-    python synthetic/synth_subset_5k.py            # run from data_pipeline/ -> synthetic/synth_subset_5k/
-    SWED_DATA=synthetic/synth_subset_5k SWED_WORK=synthetic/synth_subset_5k SWED_OUT=synthetic python 02_build.py
-                                                   # -> synthetic/built_synth_subset_5k/
+    python src/data_pipeline/synthetic/synth_subset_5k.py
+    SWED_DATA=Data/local/data_pipeline/synth_subset_5k SWED_OUT=Results/data_pipeline python src/data_pipeline/02_build.py
+                                                   # -> Results/data_pipeline/built_synth_subset_5k/
 
 Sizes, dates, null rates and quantiles are rough targets from data_info/swed_profile.txt; nothing is
 copied from real rows. Vitals, labs, diagnoses and complaints have made-up names (V1.., L1.., D1.., C1..),
@@ -24,7 +24,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-HERE = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DAY, MIN = np.timedelta64(1, "D"), np.timedelta64(1, "m")
 S, F, B, I32, DT = pa.string(), pa.float64(), pa.bool_(), pa.int32(), pa.date32()
 TS = pa.timestamp("us", tz="UTC")
@@ -362,4 +362,4 @@ def main(n: int, out: Path, seed: int = 20261104) -> None:
 
 
 if __name__ == "__main__":
-    main(5_000, HERE / "synth_subset_5k")
+    main(5_000, REPO_ROOT / "Data" / "local" / "data_pipeline" / "synth_subset_5k")

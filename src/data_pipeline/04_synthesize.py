@@ -23,14 +23,15 @@ How values are drawn
 
 Assumptions not backed by the statistics are named constants marked ASSUMPTION.
 
-    python 04_synthesize.py --stats export_stats_built_subset --n-patients 5000
-    python 04_synthesize.py --stats export_stats_built_subset --validate
+    python src/data_pipeline/04_synthesize.py --stats Results/data_pipeline/export_stats_built_subset --n-patients 5000
+    python src/data_pipeline/04_synthesize.py --stats Results/data_pipeline/export_stats_built_subset --validate
 """
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import time
 from pathlib import Path
 
@@ -40,7 +41,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 HERE = Path(__file__).resolve().parent
-REF = HERE / "data_info"
+REPO_ROOT = HERE.parents[1]
+REF = Path(os.environ.get("SWED_REF", REPO_ROOT / "Data" / "data_info"))
 
 # 02_build.py defines the vitals/labs schemas and the SNOMED codes per concept; reuse them.
 _spec = importlib.util.spec_from_file_location("build", HERE / "02_build.py")
@@ -515,10 +517,10 @@ def main() -> None:
     ap.add_argument("--stats", type=Path, required=True, help="folder written by 03_export_stats.py")
     ap.add_argument("--n-patients", type=int, default=5000)
     ap.add_argument("--seed", type=int, default=20261026)
-    ap.add_argument("--out", type=Path, help="default: synthetic_<stats folder name>")
+    ap.add_argument("--out", type=Path, help="default: $SWED_OUT/synthetic_<stats folder name>")
     ap.add_argument("--validate", action="store_true", help="print synthetic vs exported statistics")
     args = ap.parse_args()
-    out = args.out or Path(f"synthetic_{args.stats.name}")
+    out = args.out or Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline")) / f"synthetic_{args.stats.name}"
     out.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(args.seed)
     st = Stats(args.stats)

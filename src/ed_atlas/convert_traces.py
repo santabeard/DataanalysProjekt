@@ -86,9 +86,9 @@ import numpy as np
 import patsy
 import polars as pl
 
-EDATLAS_DIR = Path(__file__).parent
-RESOURCES_DIR = EDATLAS_DIR.parent / "resources"
-DATA_DIR = EDATLAS_DIR / "data"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RESOURCES_DIR = REPO_ROOT / "src" / "ed_atlas" / "resources"
+DATA_DIR = REPO_ROOT / "Data" / "ed_atlas"
 
 # Model specification — must match the PyMC training code
 AGE_KNOTS = [22.0, 43.0, 65.0, 88.0]
@@ -215,7 +215,7 @@ def build_prediction_grid(
 
 def convert_mortality(symptom_cols: list[str]) -> None:
     """Convert trace.nc → prediction grid + structured posterior."""
-    trace_path = EDATLAS_DIR / "trace.nc"
+    trace_path = DATA_DIR / "trace.nc"
     if not trace_path.exists():
         print(f"SKIP mortality: {trace_path} not found")
         return
@@ -289,7 +289,7 @@ def convert_all_diagnoses(symptom_cols: list[str]) -> None:
 
     Stacks all ICD models into one file with arrays indexed by ICD position.
     """
-    nc_paths = sorted(EDATLAS_DIR.glob("trace_diag_*.nc"))
+    nc_paths = sorted(DATA_DIR.glob("trace_diag_*.nc"))
     if not nc_paths:
         print("SKIP diagnosis: no trace_diag_*.nc files found")
         return
@@ -362,7 +362,7 @@ def convert_all_diagnoses(symptom_cols: list[str]) -> None:
 
 
 def main():
-    dummies_path = EDATLAS_DIR / "mortality_dummies.parquet"
+    dummies_path = DATA_DIR / "mortality_dummies.parquet"
     if not dummies_path.exists():
         print(f"ERROR: {dummies_path} not found")
         sys.exit(1)

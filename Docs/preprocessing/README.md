@@ -5,13 +5,17 @@ Pure numpy/scipy Gibbs sampler – no PyMC/Stan needed.
 ## Files
 | file | purpose |
 |---|---|
-| `simulate_data.py` | synthetic data: 3 base vars (never missing) + 11 vitals, binary outcome, a different missingness mechanism per vital; writes `data/` incl. `truth.json` |
-| `bayes_missing.py` | the model (`fit`, `run_chain`, `prepare`, R-hat/ESS) |
-| `run_analysis.py` | baselines, both Bayesian fits, diagnostics, sensitivity analysis, figures → `results/` |
+Code lives in `src/preprocessing/`, data in `Data/preprocessing/`, outputs in `Results/preprocessing/`.
 
-```
-python3 simulate_data.py            # -> data/
-python3 run_analysis.py             # -> results/   (~10 min on 2 cores)
+| file | purpose |
+|---|---|
+| `src/preprocessing/simulate_data.py` | synthetic data: 3 base vars (never missing) + 11 vitals, binary outcome, a different missingness mechanism per vital |
+| `src/preprocessing/bayes_missing.py` | the model (`fit`, `run_chain`, `prepare`, R-hat/ESS) |
+| `src/preprocessing/run_analysis.py` | baselines, both Bayesian fits, diagnostics, sensitivity analysis, figures |
+
+```bash
+PYTHONPATH=src python3 src/preprocessing/simulate_data.py
+PYTHONPATH=src python3 src/preprocessing/run_analysis.py
 ```
 
 ## Model
@@ -30,7 +34,8 @@ Optional: `prior_obs_rate={"lactate": 0.6}` puts an informative prior on a vital
 
 ## Using it on real data
 ```python
-import pandas as pd, bayes_missing as bm
+import pandas as pd
+from preprocessing import bayes_missing as bm
 data = bm.prepare(df, ["age","sex","comorbidity"], vital_cols, "outcome", log_vars=("lactate",))
 res  = bm.fit(data, selection={"lactate": None, "glucose": None}, chains=4, n_iter=6000, n_burn=2500)
 bm.summarize(res["beta"], bm.coef_labels(res))        # per model-unit; multiply by data["x_scale"] for per-SD of the raw scale

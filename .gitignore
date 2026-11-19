@@ -1,7 +1,4 @@
 # --- installed Python packages: never commit these -----------------------
-# virtualenvs, build output and metadata are reproducible from a
-# requirements.txt, and site-packages in particular is tens of thousands
-# of files that bloat the repo without carrying any of your work
 .venv/
 venv/
 env/
@@ -22,18 +19,23 @@ dist/
 .installed.cfg
 MANIFEST
 
-# --- data artefacts: large, regenerable, not source ----------------------
-ed_atlas/data/*.npz
-# PyMC traces and intermediate files used by convert_traces.py
+# --- data artefacts ------------------------------------------------------
 *.nc
 *.parquet
-
-# data/ is ignored by root .gitignore, but shipped posteriors should be tracked
-!data/*.npz
 *.npz
 
+!Data/**/*.parquet
+!Data/**/*.csv
+!Data/**/*.npz
+!Results/**/*.parquet
+!Results/**/*.npz
+!Results/**/*.png
+
+Data/local/
+Data/data_info/
 archive
 
-# --- OS noise ------------------------------------------------------------
-.DS_Store*.code-workspace
-data_pipeline/data_info/
+# --- OS and editor noise -------------------------------------------------
+.DS_Store
+*.code-workspace
+node_modules/

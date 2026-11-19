@@ -50,6 +50,6 @@ Usage:
     atlas.mort_sctids     # list[str], length 437
 """
 
-from ed_atlas._lookup import EdAtlas, ParameterPosterior
+from ._lookup import EdAtlas, ParameterPosterior
 
 __all__ = ["EdAtlas", "ParameterPosterior"]

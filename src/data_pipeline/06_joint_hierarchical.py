@@ -88,7 +88,7 @@ def load(built: Path) -> pd.DataFrame:
 
 def main() -> None:
     out_root = av.OUT_ROOT
-    built = args.built or out_root / "built_subset"
+    built = args.built or out_root / "built_synth_subset_50k"
     out = args.out or out_root / f"joint_hierarchical_{built.name}"
     out.mkdir(parents=True, exist_ok=True)
     vitals = [s.strip() for s in args.vitals.split(",")]

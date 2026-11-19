@@ -13,8 +13,8 @@ Every target comes from "Synthetic SWED Parquet files: LLM instructions"
 files. Values the profile did not contain are marked ASSUMPTION and kept as
 named constants below.
 
-    uv run --with numpy --with pyarrow python synthetic/make_synthetic_swed.py --n-persons 100000            # from data_pipeline/
-    uv run --with numpy --with pyarrow python synthetic/make_synthetic_swed.py --n-persons 100000 --validate
+    python src/data_pipeline/synthetic/make_synthetic_swed.py --n-persons 100000
+    python src/data_pipeline/synthetic/make_synthetic_swed.py --n-persons 100000 --validate
 """
 
 from __future__ import annotations
@@ -3423,7 +3423,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--n-persons", type=int, default=50_000)
-    ap.add_argument("--out-dir", default="./synthetic")
+    ap.add_argument("--out-dir", default=str(Path(__file__).resolve().parents[3] / "Data" / "local" / "data_pipeline" / "make_synthetic_swed"))
     ap.add_argument("--validate", action="store_true", help="check the written files against the spec")
     args = ap.parse_args(argv)
     if args.validate:

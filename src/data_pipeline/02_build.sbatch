@@ -6,7 +6,7 @@
 #SBATCH -J swed_build
 #SBATCH -o swed_build_%j.log
 
-# Submit from the folder holding 02_build.py, data_info/ and out/:   sbatch 02_build.sbatch
+# Submit from src/data_pipeline and set SWED_DATA/SWED_REF/SWED_OUT:   sbatch 02_build.sbatch
 # Full data instead of the subset:   sbatch -p node -N 1 -t 04:00:00 --export=ALL,SWED_DATA=/cygnus/proj/nobackup/swed_db/clean_parquet 02_build.sbatch
 
 set -euo pipefail

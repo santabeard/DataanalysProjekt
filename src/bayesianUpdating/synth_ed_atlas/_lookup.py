@@ -3,7 +3,7 @@
 Ships with posterior npz files (small). On first use, computes prediction
 grids from the posteriors and caches them in ~/.cache/ed_atlas/.
 
-Shipped data (in ed_atlas/data/):
+Shipped data (in Data/ed_atlas/):
     atlas_mortality_posterior.npz    — mortality parameter posterior (~300KB)
     atlas_diagnosis_posterior.npz    — all diagnosis posteriors stacked (~300KB per ICD)
 
@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-_DATA_DIR = Path(__file__).parent / "data"
+_DATA_DIR = Path(__file__).resolve().parents[3] / "Data" / "ed_atlas"
 _CACHE_DIR = Path.home() / ".cache" / "ed_atlas"
 
 # Age range matching the Bayesian model training grid

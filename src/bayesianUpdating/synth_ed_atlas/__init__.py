@@ -27,7 +27,7 @@ This is the correct E[P] under complaint uncertainty (mixing in logit
 space would be biased by Jensen's inequality).
 
 Usage:
-    from synth_ed_atlas import EdAtlas
+    from bayesianUpdating.synth_ed_atlas import EdAtlas
 
     atlas = EdAtlas()
 

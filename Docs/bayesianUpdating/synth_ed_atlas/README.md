@@ -5,7 +5,7 @@ Bayesian logistic regression priors for ED triage. Predicts 30-day diagnosis (93
 ## Usage
 
 ```python
-from ed_atlas import EdAtlas
+from bayesianUpdating.synth_ed_atlas import EdAtlas
 
 atlas = EdAtlas()
 probs = atlas.predict(age=65, is_male=1, sctids=["271594007"])        # (n_icds,)
@@ -20,8 +20,8 @@ On first run, prediction grids are computed from the shipped posteriors and cach
 | File | What |
 |------|------|
 | `_lookup.py` | Module code. `EdAtlas` (grid lookup) + `ParameterPosterior` (exact structured covariance) |
-| `data/*.npz` | Shipped posteriors: MVN approximation of PyMC MCMC posteriors (<1% error vs samples) |
-| `convert_traces.py` | One-off script to produce the npz files from raw PyMC NetCDF traces into `data/`. Not needed at runtime. Run with `uv run --with arviz --with netcdf4 --with patsy python ed_atlas/convert_traces.py` |
+| `Data/ed_atlas/*.npz` | Shipped posteriors: MVN approximation of PyMC MCMC posteriors (<1% error vs samples) |
+| `src/bayesianUpdating/synth_ed_atlas/convert_traces.py` | One-off script to produce the npz files from raw PyMC NetCDF traces into `Data/ed_atlas/`. Not needed at runtime. Run with `python src/bayesianUpdating/synth_ed_atlas/convert_traces.py` |
 
 ## Dependencies
 

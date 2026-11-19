@@ -6,7 +6,7 @@
 #SBATCH -J swed_build_stats
 #SBATCH -o swed_build_stats_%j.log
 
-# Runs 02_build.py, then 03_export_stats.py only if the build succeeded.
+# Runs 02_build.py, then 03_export_stats.py only if the build succeeded. Submit from src/data_pipeline.
 # Subset (default):  sbatch build_and_stats.sbatch
 # Full data:         sbatch -p node -N 1 -t 04:00:00 --export=ALL,SWED_DATA=/cygnus/proj/nobackup/swed_db/clean_parquet build_and_stats.sbatch
 

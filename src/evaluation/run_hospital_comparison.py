@@ -40,11 +40,11 @@ from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
 from sklearn.linear_model import BayesianRidge, LogisticRegression
 
-import bayes_missing as bm
-import bayes_missing_h as bh
+from preprocessing import bayes_missing as bm
+from evaluation import bayes_missing_h as bh
 
 warnings.filterwarnings("ignore")
-HERE = Path(__file__).parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 LOG_VARS = ("glucose", "lactate", "creatinine", "wbc")
 LEVELS = [0.0, 0.25, 0.5]
 SIT = ["As recorded", "25% more deleted", "50% more deleted"]
@@ -171,8 +171,8 @@ def main():
     ap.add_argument("--ntrain", type=int, default=4500)
     ap.add_argument("--reuse", action="store_true", help="reuse saved Bayesian predictions if present")
     ap.add_argument("--quick", action="store_true")
-    ap.add_argument("--out", default=str(HERE / "results_h"))
-    ap.add_argument("--data-dir", default=str(HERE / "data_h"))
+    ap.add_argument("--out", default=str(REPO_ROOT / "Results" / "evaluation" / "results_h"))
+    ap.add_argument("--data-dir", default=str(REPO_ROOT / "Data" / "evaluation" / "data_h"))
     ap.add_argument("--with-standard", action="store_true", help="also run ridge/boosting benchmarks")
     a = ap.parse_args()
     if a.quick:

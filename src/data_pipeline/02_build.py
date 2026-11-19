@@ -15,7 +15,7 @@ developing, the full clean_parquet folder for the final run) and writes:
     unmapped_terms.csv    lab/measurement terms with no SNOMED code, by source
 
 Output goes to $SWED_OUT/built_<name of SWED_DATA folder> (SWED_OUT defaults to
-/home/theon/Desktop/data_std), so a subset build never overwrites the full one.
+Results/data_pipeline), so a subset build never overwrites the full one.
 Source files are only read; the script refuses to write into a source folder.
 Everything in the output is real patient data.
 
@@ -36,7 +36,7 @@ Rules applied, in order:
     from VISIT_BEFORE_MIN before arrival until arrival + ed_time_total_minutes
     (VISIT_FALLBACK_MIN when that is missing). Rows outside every window get null.
 
-    SWED_DATA=/home/theon/Desktop/data_std/subset python 02_build.py
+    SWED_DATA=Results/data_pipeline/subset python src/data_pipeline/02_build.py
 """
 
 from __future__ import annotations
@@ -56,11 +56,13 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 DATA = Path(os.environ.get("SWED_DATA", "/cygnus/proj/nobackup/swed_db/clean_parquet"))
 WORK = Path(os.environ.get("SWED_WORK", Path.cwd()))  # where out/exclude_lopnr.csv etc. are read from
 ORIGINAL = Path("/cygnus/proj/nobackup/swed_db/clean_parquet")  # never written to
-OUT_ROOT = Path(os.environ.get("SWED_OUT", "/home/theon/Desktop/data_std"))  # everything that stays on Bianca
-REF =Path(os.environ.get("SWED_REF", Path(__file__).resolve().parent / "data_info"))
+OUT_ROOT = Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline"))
+REF = Path(os.environ.get("SWED_REF", REPO_ROOT / "Data" / "data_info"))
 EXCLUDE_CSV = WORK / "out" / "exclude_lopnr.csv"
 VITAL_MAP_CSV = WORK / "out" / "vitals_snomed_map.csv"
 

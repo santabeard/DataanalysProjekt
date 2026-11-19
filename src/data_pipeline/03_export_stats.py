@@ -20,10 +20,10 @@ At the end every CSV is checked against these rules; the script fails if one bre
 The automatic check does not replace reading the files. Look through every CSV
 before you move the folder off Bianca, and follow your project's export routine.
 
-Reads from and writes under $SWED_OUT (default /home/theon/Desktop/data_std).
+Reads from and writes under $SWED_OUT (default Results/data_pipeline).
 
-    python 03_export_stats.py                         # reads built_subset/
-    python 03_export_stats.py --built /home/theon/Desktop/data_std/built_clean_parquet
+    python src/data_pipeline/03_export_stats.py
+    python src/data_pipeline/03_export_stats.py --built Results/data_pipeline/built_clean_parquet
 """
 
 from __future__ import annotations
@@ -37,8 +37,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 ORIGINAL = Path("/cygnus/proj/nobackup/swed_db/clean_parquet")  # never written to
-OUT_ROOT = Path(os.environ.get("SWED_OUT", "/home/theon/Desktop/data_std"))
+OUT_ROOT = Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline"))
 
 MIN_CELL = 10
 ROUND_TO = 5
@@ -290,7 +292,7 @@ def self_check(out: Path) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--built", type=Path, default=OUT_ROOT / "built_subset", help="output folder of 02_build.py")
+    ap.add_argument("--built", type=Path, default=OUT_ROOT / "built_synth_subset_50k", help="output folder of 02_build.py")
     ap.add_argument("--out", type=Path, help="default: $SWED_OUT/export_stats_<built folder name>")
     args = ap.parse_args()
     out = args.out or OUT_ROOT / f"export_stats_{args.built.name}"

@@ -15,8 +15,8 @@ Writes aggregated CSVs only, with the same rules as 03_export_stats.py
 (>= 10 patients per group, counts rounded to 5), so the output can go through the
 normal export review.
 
-    python 05_atlas_vitals.py                               # built_subset, atlas npz in this folder
-    python 05_atlas_vitals.py --built .../built_clean_parquet --atlas path/to/npz
+    python src/data_pipeline/05_atlas_vitals.py
+    python src/data_pipeline/05_atlas_vitals.py --built Results/data_pipeline/built_clean_parquet --atlas path/to/npz
 
 Caveat: the atlas was trained on SwED, probably on these same visits, so model A's
 scores are optimistic. The comparison that matters is C against B.
@@ -33,7 +33,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-OUT_ROOT = Path(os.environ.get("SWED_OUT", "/home/theon/Desktop/data_std"))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+OUT_ROOT = Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline"))
 MIN_CELL, ROUND_TO = 10, 5
 AGE_MIN, AGE_MAX = 18, 109
 FOLDS, RIDGE, SEED = 5, 1.0, 0
@@ -226,8 +227,8 @@ def scores(y, p) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--built", type=Path, default=OUT_ROOT / "built_subset", help="output folder of 02_build.py")
-    ap.add_argument("--atlas", type=Path, default=Path("atlas_mortality_posterior.npz"))
+    ap.add_argument("--built", type=Path, default=OUT_ROOT / "built_synth_subset_50k", help="output folder of 02_build.py")
+    ap.add_argument("--atlas", type=Path, default=REPO_ROOT / "Data" / "ed_atlas" / "atlas_mortality_posterior.npz")
     ap.add_argument("--out", type=Path, help="default: $SWED_OUT/atlas_vitals_<built folder name>")
     args = ap.parse_args()
     out = args.out or OUT_ROOT / f"atlas_vitals_{args.built.name}"

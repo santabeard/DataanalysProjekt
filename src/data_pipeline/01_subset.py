@@ -5,11 +5,11 @@ Samples N patients (lopnr_swed) from swed_ed_core and copies every row those
 patients have in each table below. Sampling by patient keeps joins intact:
 a sampled patient brings their ED visits, labs, diagnoses and death record.
 
-Outputs go to $SWED_OUT/subset (default /home/theon/Desktop/data_std/subset) and
+Outputs go to $SWED_OUT/subset (default Results/data_pipeline/subset) and
 keep the source file names and schemas, so later scripts and the notebook run on
 the subset just by pointing SWED_DATA at it:
 
-    SWED_DATA=/home/theon/Desktop/data_std/subset python 02_build.py
+    SWED_DATA=Results/data_pipeline/subset python src/data_pipeline/02_build.py
 
 The source files are only read, never changed; the script refuses to write into
 the source folder. The output is real patient data. It stays on Bianca.
@@ -36,10 +36,12 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 DATA = Path(os.environ.get("SWED_DATA", "/cygnus/proj/nobackup/swed_db/clean_parquet"))
 WORK = Path(os.environ.get("SWED_WORK", Path.cwd()))  # where out/exclude_lopnr.csv is read from
 ORIGINAL = Path("/cygnus/proj/nobackup/swed_db/clean_parquet")  # never written to
-OUT_ROOT = Path(os.environ.get("SWED_OUT", "/home/theon/Desktop/data_std"))  # everything that stays on Bianca
+OUT_ROOT = Path(os.environ.get("SWED_OUT", REPO_ROOT / "Results" / "data_pipeline"))
 EXCLUDE_CSV = WORK / "out" / "exclude_lopnr.csv"  # written by swed_tasks.ipynb (Tolvan etc.)
 
 SAMPLE_FROM = "swed_ed_core"

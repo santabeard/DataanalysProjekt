@@ -35,7 +35,7 @@ import numpy as np
 from scipy.special import expit, log_ndtr
 from scipy.stats import invwishart
 
-from bayes_missing import _chol_sample, draw_latent_probit, rhat, ess, sample_pg1, prepare  # noqa: F401
+from preprocessing.bayes_missing import _chol_sample, draw_latent_probit, rhat, ess, sample_pg1, prepare  # noqa: F401
 
 
 def pattern_groups(miss, blocks):

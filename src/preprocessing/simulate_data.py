@@ -34,6 +34,8 @@ import pandas as pd
 from scipy.optimize import brentq
 from scipy.special import expit, ndtr
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 BASE = ["age", "sex", "comorbidity"]
 
 # name, centre, spread (on the analysis scale), is_log (stored on natural scale as exp(.))
@@ -172,7 +174,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=3000)
     ap.add_argument("--seed", type=int, default=20261022)
-    ap.add_argument("--out", default=str(Path(__file__).parent / "data"))
+    ap.add_argument("--out", default=str(REPO_ROOT / "Data" / "preprocessing"))
     a = ap.parse_args()
 
     out = Path(a.out)

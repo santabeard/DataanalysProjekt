@@ -6,7 +6,7 @@
 #SBATCH -J swed_subset
 #SBATCH -o swed_subset_%j.log
 
-# Submit from the folder holding 01_subset.py:   sbatch 01_subset.sbatch
+# Submit from src/data_pipeline:   sbatch 01_subset.sbatch
 # Follow progress:                               tail -f swed_subset_<jobid>.log
 # If it times out, resubmit: finished tables are skipped.
 

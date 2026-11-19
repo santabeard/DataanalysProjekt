@@ -62,10 +62,12 @@ def data_files():
         raise FileNotFoundError(f"no .parquet files in {data}")
     return f"{n} parquet files"
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
 data = Path(os.environ.get("SWED_DATA", "/cygnus/proj/nobackup/swed_db/clean_parquet"))
+work = Path(os.environ.get("SWED_WORK", Path.cwd()))
+ref = Path(os.environ.get("SWED_REF", REPO_ROOT / "Data" / "data_info"))
 check(f"data folder ({data})", data_files)
-here = Path.cwd()
-check("data_info/ in this folder", need(here / "data_info" / "swed_lab_meas_to_snomed.csv", "copy data_info/ here"))
-check("out/exclude_lopnr.csv", need(here / "out" / "exclude_lopnr.csv", "run Tolvan's cell in swed_tasks.ipynb; scripts still run without it"))
+check(f"data_info ({ref})", need(ref / "swed_lab_meas_to_snomed.csv", "set SWED_REF to the data_info folder"))
+check("out/exclude_lopnr.csv", need(work / "out" / "exclude_lopnr.csv", "run Tolvan's cell in swed_tasks.ipynb; scripts still run without it"))
 
 print("\nALL OK" if ok else "\nSOMETHING FAILED: see FAIL lines above")

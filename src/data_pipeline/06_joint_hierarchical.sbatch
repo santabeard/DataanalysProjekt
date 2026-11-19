@@ -6,7 +6,7 @@
 #SBATCH -J swed_joint
 #SBATCH -o swed_joint_%j.log
 
-# Submit from the folder holding 05_atlas_vitals.py and 06_joint_hierarchical.py:   sbatch 06_joint_hierarchical.sbatch
+# Submit from src/data_pipeline:   sbatch 06_joint_hierarchical.sbatch
 # Other vitals:   sbatch 06_joint_hierarchical.sbatch --vitals temp,sbp,pulse,spo2
 
 set -euo pipefail

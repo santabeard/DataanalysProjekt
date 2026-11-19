@@ -3,13 +3,9 @@
 		{
 			"name": "DataanalysProjekt",
 			"path": "."
-		},
-		{
-			"name": "ed_atlas",
-			"path": "../../../.Trash/ed_atlas"
 		}
 	],
 	"settings": {
-		"python.defaultInterpreterPath": "/home/theo/Work/DEV/skola/pda/.venv/bin/python"
+		"python-envs.defaultEnvManager": "ms-python.python:venv"
 	}
 }
