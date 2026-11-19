@@ -13,10 +13,10 @@ Code developed on the synthetic data runs unchanged on the real build, because t
 
 | Where | What |
 |---|---|
-| `src/data_pipeline/01`–`07` `*.py` / `*.sbatch`, `build_and_stats.sbatch`, `check_env.py` | The pipeline, flat as in `scripts/` on Bianca: subset, build, export stats, synthesize, then the models. Each sbatch file sits next to its script. |
+| `src/core/data_pipeline/01`–`07` `*.py` / `*.sbatch`, `build_and_stats.sbatch` (environment check: `src/shared/check_env.py`) | The pipeline, flat as in `scripts/` on Bianca: subset, build, export stats, synthesize, then the models. Each sbatch file sits next to its script. |
 | `Data/data_info/` | Documentation of the real data: variable lists, the column profile, lab/SNOMED mappings. Not in git; supply via `SWED_REF`. |
 | `Docs/notebooks/data_pipeline/` | `swed_tasks.ipynb` (supervisor's tasks) and `explore_built.ipynb` (a look at the built cohort). |
-| `src/data_pipeline/synthetic/` | Synthetic-data generators: `synth_subset_5k.py` / `synth_subset_50k.py` (fake `subset/` with made-up names) and `make_synthetic_swed.py` (older raw-extract generator). Local output goes under `Data/local/data_pipeline/`. |
+| `src/core/data_pipeline/synthetic/` | Synthetic-data generators: `synth_subset_5k.py` / `synth_subset_50k.py` (fake `subset/` with made-up names) and `make_synthetic_swed.py` (older raw-extract generator). Local output goes under `Data/local/synth/`. |
 
 ## Supervisor's tasks and where they stand
 
@@ -33,13 +33,13 @@ Code developed on the synthetic data runs unchanged on the real build, because t
 
 | Step | Where | Command | Output |
 |---|---|---|---|
-| 1. Subset | Bianca | `cd src/data_pipeline && sbatch 01_subset.sbatch` | `$SWED_OUT/subset/` |
+| 1. Subset | Bianca | `cd src/core/data_pipeline && sbatch 01_subset.sbatch` | `$SWED_OUT/subset/` |
 | 2. Build | Bianca | `sbatch 02_build.sbatch` | `$SWED_OUT/built_<SWED_DATA folder>/` |
-| 3. Stats | Bianca | `python src/data_pipeline/03_export_stats.py` | `$SWED_OUT/export_stats_<built folder>/` |
+| 3. Stats | Bianca | `python src/core/data_pipeline/03_export_stats.py` | `$SWED_OUT/export_stats_<built folder>/` |
 | 4. Review and export | Bianca → laptop | read every CSV, follow the project's export routine | |
-| 5. Synthesize | laptop | `python src/data_pipeline/04_synthesize.py --stats <export folder> --validate` | `Results/data_pipeline/synthetic_<stats folder>/` |
+| 5. Synthesize | laptop | `python src/core/data_pipeline/04_synthesize.py --stats <export folder> --validate` | `Results/data_pipeline/synthetic_<stats folder>/` |
 
-`check_env.py` checks the Python packages, paths and input files. Set `SWED_DATA`, `SWED_WORK` and `SWED_REF` before running it.
+`src/shared/check_env.py` checks the Python packages, paths and input files. Set `SWED_DATA`, `SWED_WORK` and `SWED_REF` before running it.
 
 ### What each script does
 

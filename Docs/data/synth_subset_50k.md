@@ -1,7 +1,7 @@
 # synth_subset_50k
 
 Synthetic version of `subset/` (the output of `01_subset.py`) for **50,000 made-up patients**.
-Made by `src/data_pipeline/synthetic/synth_subset_50k.py` (same generator as the 5k set, seed 20261104).
+Made by `src/core/data_pipeline/synthetic/synth_subset_50k.py` (same generator as the 5k set, seed 20261104).
 No real rows: use it to test code, not findings.
 
 ## Files
@@ -42,7 +42,7 @@ Same file names, columns and types as the real subset (checked against `data_inf
 From the repository root:
 
 ```bash
-SWED_DATA=Data/synth_subset_50k SWED_OUT=Results/data_pipeline SWED_REF=/path/to/data_info \
-  python src/data_pipeline/02_build.py
+SWED_DATA=Data/synth/synth_subset_50k SWED_OUT=Results/data_pipeline SWED_REF=/path/to/data_info \
+  python src/core/data_pipeline/02_build.py
 # -> Results/data_pipeline/built_synth_subset_50k/
 ```

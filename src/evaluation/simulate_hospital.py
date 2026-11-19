@@ -27,7 +27,7 @@ import pandas as pd
 from scipy.optimize import brentq
 from scipy.special import expit, ndtr
 
-from preprocessing import simulate_data as sd
+from core.missingness_detection import simulate_data as sd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

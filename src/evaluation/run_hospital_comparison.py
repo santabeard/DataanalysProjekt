@@ -40,7 +40,7 @@ from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
 from sklearn.linear_model import BayesianRidge, LogisticRegression
 
-from preprocessing import bayes_missing as bm
+from core.missingness_detection import bayes_missing as bm
 from evaluation import bayes_missing_h as bh
 
 warnings.filterwarnings("ignore")

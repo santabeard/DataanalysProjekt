@@ -3,7 +3,7 @@
 # Install in a controlled environment:
 #   pip install -r requirements.txt
 #
-# The pure numpy/scipy Gibbs samplers in src/preprocessing and src/evaluation
+# The pure numpy/scipy Gibbs samplers in src/core/missingness_detection and src/evaluation
 # do not need PyMC. PyMC/numpyro are for the Bayesian notebooks and models.
 
 # --- Numerical & scientific computing ---
