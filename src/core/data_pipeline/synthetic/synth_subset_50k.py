@@ -10,4 +10,4 @@ from pathlib import Path
 from synth_subset_5k import main
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-main(50_000, REPO_ROOT / "Data" / "local" / "data_pipeline" / "synth_subset_50k")
+main(50_000, REPO_ROOT / "Data" / "local" / "synth" / "synth_subset_50k")

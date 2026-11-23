@@ -35,6 +35,11 @@ Data/local/
 Data/data_info/
 archive
 
+# --- run artefacts -------------------------------------------------------
+*.log
+.ipynb_checkpoints/
+.freebuff/
+
 # --- OS and editor noise -------------------------------------------------
 .DS_Store
 *.code-workspace

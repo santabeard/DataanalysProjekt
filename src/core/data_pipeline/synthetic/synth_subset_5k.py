@@ -362,4 +362,4 @@ def main(n: int, out: Path, seed: int = 20261104) -> None:
 
 
 if __name__ == "__main__":
-    main(5_000, REPO_ROOT / "Data" / "local" / "data_pipeline" / "synth_subset_5k")
+    main(5_000, REPO_ROOT / "Data" / "local" / "synth" / "synth_subset_5k")

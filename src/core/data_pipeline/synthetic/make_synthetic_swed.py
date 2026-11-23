@@ -3423,7 +3423,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--n-persons", type=int, default=50_000)
-    ap.add_argument("--out-dir", default=str(Path(__file__).resolve().parents[4] / "Data" / "local" / "data_pipeline" / "make_synthetic_swed"))
+    ap.add_argument("--out-dir", default=str(Path(__file__).resolve().parents[4] / "Data" / "local" / "synth" / "make_synthetic_swed"))
     ap.add_argument("--validate", action="store_true", help="check the written files against the spec")
     args = ap.parse_args(argv)
     if args.validate:

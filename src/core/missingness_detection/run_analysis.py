@@ -196,8 +196,8 @@ def make_sensitivity_figure(sens, truth_by_vital, path):
 # ------------------------------------------------------------------ main
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default=str(REPO_ROOT / "Data" / "preprocessing"))
-    ap.add_argument("--out-dir", default=str(REPO_ROOT / "Results" / "preprocessing"))
+    ap.add_argument("--data-dir", default=str(REPO_ROOT / "Data" / "missingness_detection"))
+    ap.add_argument("--out-dir", default=str(REPO_ROOT / "Results" / "missingness_detection"))
     ap.add_argument("--iter", type=int, default=6000)
     ap.add_argument("--burn", type=int, default=2500)
     ap.add_argument("--chains", type=int, default=2)

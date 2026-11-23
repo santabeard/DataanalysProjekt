@@ -174,7 +174,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=3000)
     ap.add_argument("--seed", type=int, default=20261022)
-    ap.add_argument("--out", default=str(REPO_ROOT / "Data" / "preprocessing"))
+    ap.add_argument("--out", default=str(REPO_ROOT / "Data" / "missingness_detection"))
     a = ap.parse_args()
 
     out = Path(a.out)
