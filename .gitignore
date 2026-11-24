@@ -44,3 +44,4 @@ archive
 .DS_Store
 *.code-workspace
 node_modules/
+Data/ed_atlas/
