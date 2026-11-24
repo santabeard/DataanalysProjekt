@@ -4,6 +4,7 @@
 You choose the size and the seed; the script runs the whole pipeline and writes the result to
 Data/synth/ as <size>_<seed>_<date>.csv, e.g. Data/synth/15K_42_2026-11-24.csv.
 
+    python src/core/data_pipeline/synthetic/generate_data.py                       # asks for size and seed
     python src/core/data_pipeline/synthetic/generate_data.py --n-patients 15000 --seed 42
     python src/core/data_pipeline/synthetic/generate_data.py -n 15000 -s 42 --keep-raw
     python src/core/data_pipeline/synthetic/generate_data.py --help
@@ -168,12 +169,27 @@ def generate(n_patients: int, seed: int, out: Path | str | None = None, keep_raw
     return path
 
 
+def ask_int(question: str, minimum: int) -> int:
+    """Ask in the terminal until the answer is a whole number >= minimum."""
+    while True:
+        try:
+            answer = input(question).strip().replace(",", "").replace("_", "")
+        except EOFError:
+            raise ValueError("no answer given") from None
+        if answer.lstrip("-").isdigit() and int(answer) >= minimum:
+            return int(answer)
+        print(f"  please type a whole number of at least {minimum}, e.g. 15000")
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        description="Generate synthetic SWED data (made-up patients) as one CSV: Data/synth/<size>_<seed>_<date>.csv",
-        epilog="example: python src/core/data_pipeline/synthetic/generate_data.py --n-patients 15000 --seed 42")
-    ap.add_argument("-n", "--n-patients", type=int, required=True, help="number of patients, e.g. 15000")
-    ap.add_argument("-s", "--seed", type=int, required=True, help="random seed, e.g. 42 (same seed = same data)")
+        description="Generate synthetic SWED data (made-up patients) as one CSV: Data/synth/<size>_<seed>_<date>.csv. "
+                    "Run it without arguments and it asks for the number of patients and the seed.",
+        epilog="examples:  python src/core/data_pipeline/synthetic/generate_data.py            (asks you)\n"
+               "           python src/core/data_pipeline/synthetic/generate_data.py -n 15000 -s 42",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("-n", "--n-patients", type=int, help="number of patients, e.g. 15000 (asked if left out)")
+    ap.add_argument("-s", "--seed", type=int, help="random seed, e.g. 42; same seed = same data (asked if left out)")
     ap.add_argument("-o", "--out", type=Path, default=DEFAULT_OUT, help="output folder (default Data/synth)")
     ap.add_argument("--keep-raw", action="store_true",
                     help="also save the 10 raw tables as CSV in a folder named like the file")
@@ -182,6 +198,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--overwrite", action="store_true", help="replace the CSV if it already exists")
     a = ap.parse_args(argv)
     try:
+        if a.n_patients is None:
+            a.n_patients = ask_int("Number of patients: ", 1)
+        if a.seed is None:
+            a.seed = ask_int("Seed: ", 0)
         generate(a.n_patients, a.seed, a.out, a.keep_raw, a.ref, a.overwrite)
     except (ValueError, FileExistsError, RuntimeError) as e:
         ap.exit(1, f"error: {e}\n")
