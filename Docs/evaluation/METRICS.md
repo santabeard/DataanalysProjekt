@@ -51,3 +51,10 @@ where $n_1$ is the number of positives and $n_0$ is the number of negatives.
 If $n_1=0$ or $n_0=0$, AUC is undefined and should be skipped.
 
 For diagnosis evaluation, use **macro-AUC as the primary discrimination metric** and **micro-AUC as secondary**, because micro-AUC is weighted by diagnosis frequency. **Patient micro-AUC including mortality** pools diagnosis-code outcomes and 30-day mortality as additional columns for the same patients; it is distinct from diagnosis-only micro-AUC and death-only AUC. Mortality contributes one outcome column per patient, while diagnosis codes contribute $K$ columns. AUC measures discrimination only; calibration and probability quality are answered by NLL, Brier score, O:E ratio, calibration slope/intercept and calibration curves.
+
+The evaluator writes a CSV with one row per diagnosis plus `macro` and `micro`
+aggregates; a binary mortality target has one row. ROC-AUC, Brier score, NLL and
+O:E ratio are summarized by posterior median and 95% credible interval.
+Calibration slope and intercept are fitted using posterior-mean risks. It also
+saves a calibration plot and a ROC plot (micro/macro curves for multi-label
+diagnoses; a binary ROC curve for mortality) beside the CSV.

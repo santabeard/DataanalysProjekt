@@ -75,9 +75,10 @@ def run_orchestrator():
 
     # step 2: test train split
     X_train, X_test, y_train, y_test = train_test_split(data_df.drop(columns=[args.target]), data_df[args.target], test_size=args.test_frac, random_state=args.seed)
-
+    
     # step 3: fit the model using the bootstrap method
-    fit_model(X_train, y_train, iter=args.iter, burn=args.burn, chains=args.chains)
+    model = build_model(X_train, y_train, iter=args.iter, burn=args.burn, chains=args.chains)
+    fit_model(model,X_train, y_train, iter=args.iter, burn=args.burn, chains=args.chains)
 
     # step 4: evaluate the model
     evaluate_model(X_test, y_test, out_path=args.out)
