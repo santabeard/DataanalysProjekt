@@ -1,0 +1,5 @@
+item,value
+visits in build,177280
+"visits dropped: age outside 18-109, sex or arrival missing",0
+visits dropped: death date before arrival,0
+first values dropped: measured more than 60 min after arrival,95390

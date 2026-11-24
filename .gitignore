@@ -34,6 +34,9 @@ ed_atlas/data/*.npz
 
 archive
 
+# --- external repos --------------------------------------------------------
+ed_atlas_impl/
+
 # --- OS noise ------------------------------------------------------------
 .DS_Store*.code-workspace
 data_pipeline/data_info/

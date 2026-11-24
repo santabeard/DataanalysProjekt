@@ -1,0 +1,4 @@
+role,visits,patients,deaths,death_rate
+train,127535,36000,1870,0.0147
+val,14375,4000,200,0.014
+test,35370,10000,535,0.0152

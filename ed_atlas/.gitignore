@@ -1,0 +1,6 @@
+# PyMC traces and intermediate files used by convert_traces.py
+*.nc
+*.parquet
+
+# posterior data files: large, regenerable, not source
+data/*.npz

@@ -1,0 +1,50 @@
+step,source,metric,n
+ed_visits,swed_ed_core,rows read,177281
+ed_visits,swed_ed_core,rows dropped: no lopnr or excluded,0
+deaths,sos_deathreg_wide,rows read,5388
+deaths,sos_deathreg_wide,rows dropped: second death record for the same person,0
+deaths,sos_deathreg_wide,rows kept,5388
+deaths,sos_deathreg_diag_long,rows kept,22748
+patients,swed_ed_core,patients with conflicting is_male (mode used),0
+patients,,patients,50000
+patients,,patients with a death record,5388
+setup,swed_lab_meas_to_snomed.csv,duplicate term_name rows ignored (first kept),0
+measurements,ehr_danderyd_lab_meas,rows in file,604696
+measurements,ehr_danderyd_lab_meas,"rows read (cohort, not excluded)",604696
+vitals,ehr_danderyd_lab_meas,unit_status=given,337081
+vitals,ehr_danderyd_lab_meas,"rows implausible (kept, flagged)",0
+vitals,ehr_danderyd_lab_meas,rows linked to an ED visit,241303
+lab_meas,ehr_danderyd_lab_meas,rows dropped: unit marked 'drop' in lab_unit_normalization,0
+lab_meas,ehr_danderyd_lab_meas,rows with unit converted,0
+lab_meas,ehr_danderyd_lab_meas,rows linked to an ED visit,168330
+measurements,ehr_karolinska_meas,rows in file,238172
+measurements,ehr_karolinska_meas,"rows read (cohort, not excluded)",238172
+vitals,ehr_karolinska_meas,unit_status=given,238172
+vitals,ehr_karolinska_meas,"rows implausible (kept, flagged)",0
+vitals,ehr_karolinska_meas,rows linked to an ED visit,170302
+lab_meas,ehr_karolinska_meas,rows dropped: unit marked 'drop' in lab_unit_normalization,0
+lab_meas,ehr_karolinska_meas,rows with unit converted,0
+lab_meas,ehr_karolinska_meas,rows linked to an ED visit,0
+measurements,ehr_karolinska_lab,rows in file,189767
+measurements,ehr_karolinska_lab,"rows read (cohort, not excluded)",189767
+vitals,ehr_karolinska_lab,"rows implausible (kept, flagged)",0
+vitals,ehr_karolinska_lab,rows linked to an ED visit,0
+lab_meas,ehr_karolinska_lab,rows dropped: unit marked 'drop' in lab_unit_normalization,0
+lab_meas,ehr_karolinska_lab,rows with unit converted,0
+lab_meas,ehr_karolinska_lab,rows linked to an ED visit,118873
+measurements,ehr_sahlgrenska_lab,rows in file,156059
+measurements,ehr_sahlgrenska_lab,"rows read (cohort, not excluded)",156059
+vitals,ehr_sahlgrenska_lab,"rows implausible (kept, flagged)",0
+vitals,ehr_sahlgrenska_lab,rows linked to an ED visit,0
+lab_meas,ehr_sahlgrenska_lab,rows dropped: unit marked 'drop' in lab_unit_normalization,0
+lab_meas,ehr_sahlgrenska_lab,rows with unit converted,0
+lab_meas,ehr_sahlgrenska_lab,rows linked to an ED visit,97900
+measurements,ehr_sa_vgr_lab,rows in file,37268
+measurements,ehr_sa_vgr_lab,"rows read (cohort, not excluded)",37268
+vitals,ehr_sa_vgr_lab,"rows implausible (kept, flagged)",0
+vitals,ehr_sa_vgr_lab,rows linked to an ED visit,0
+lab_meas,ehr_sa_vgr_lab,rows dropped: unit marked 'drop' in lab_unit_normalization,0
+lab_meas,ehr_sa_vgr_lab,rows with unit converted,0
+lab_meas,ehr_sa_vgr_lab,rows linked to an ED visit,23526
+diagnoses,sos_patreg_diag_long,rows in file,3359821
+diagnoses,sos_patreg_diag_long,"rows kept (cohort, not excluded)",3359821
