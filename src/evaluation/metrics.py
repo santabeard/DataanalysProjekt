@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
@@ -93,6 +94,14 @@ def get_probability_draws(posterior_samples, X_test, n_observations, n_targets):
         )
     else:
         probabilities = np.asarray(posterior_samples, dtype=float)
+        if probabilities.ndim == 2 and n_targets == 1 and X_test is not None:
+            features = np.asarray(X_test, dtype=float)
+            if (
+                features.ndim == 2
+                and probabilities.shape[1] == features.shape[1] + 1
+            ):
+                logits = probabilities[:, :1] + probabilities[:, 1:] @ features.T
+                probabilities = expit(logits)[:, :, None]
         if probabilities.ndim == 1:
             probabilities = probabilities[None, :, None]
         elif probabilities.ndim == 2:
