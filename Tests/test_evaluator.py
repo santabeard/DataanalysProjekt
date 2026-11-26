@@ -9,6 +9,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from evaluation import evaluator
 import evaluation.calibration_slope as calibration_slope_module
+from evaluation.plots import calibration_bins, plot_calibration
 
 
 class EvaluateModelTests(unittest.TestCase):
@@ -129,6 +130,20 @@ class EvaluateModelTests(unittest.TestCase):
             self.assertTrue(
                 Path(temp_dir, "calibration_calibration.png").is_file()
             )
+    def test_calibration_bins_count_observations_events_and_write_plot(self):
+        labels = np.array([0, 0, 0, 1, 1, 1])
+        probabilities = np.array([0.05, 0.1, 0.2, 0.5, 0.7, 0.9])
+
+        grouped, edges = calibration_bins(labels, probabilities, bins=2)
+
+        self.assertEqual(int(grouped["n"].sum()), len(labels))
+        self.assertEqual(int(grouped["events"].sum()), int(labels.sum()))
+        self.assertEqual(len(edges), 3)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = Path(temp_dir) / "calibration_bins.png"
+            plot_calibration(labels, probabilities, 1.0, 0.0, output, "Test calibration")
+            self.assertTrue(output.is_file())
+
     def test_build_scoreboards_writes_all_three_views(self):
         rng = np.random.default_rng(0)
         n = 40

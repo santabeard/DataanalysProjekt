@@ -1,6 +1,6 @@
 Rank,Prediction model,Missing-data handling,AUC as recorded,Brier score as recorded,Negative log likelihood as recorded,O:E ratio as recorded,"AUC, 50% more deleted","Brier score, 50% more deleted","Negative log likelihood, 50% more deleted","O:E ratio, 50% more deleted",AUC drop,Calibration slope (1 = ideal),n,events,Key
-1,laplace logistic regression,MICE imputation + missing flags,0.7627,0.015,0.0727,0.845,0.6771,0.0155,0.0768,0.7511,-0.0856,0.7293,857,13,mice_flags
-2,laplace logistic regression,Mean imputation,0.7669,0.0151,0.0734,0.8315,0.5867,0.0158,0.082,1.1155,-0.1801,0.7123,857,13,mean
-3,laplace logistic regression,MICE imputation,0.7673,0.0151,0.0734,0.8339,0.5866,0.0156,0.0802,1.1637,-0.1807,0.7119,857,13,mice
-4,laplace logistic regression,Median imputation,0.7657,0.0151,0.0734,0.831,0.5643,0.0164,0.0827,0.8595,-0.2014,0.71,857,13,median
-,laplace logistic regression,Complete-case,0.9847,0.0081,0.0336,0.2851,,0.0,0.0008,,,1.6565,132,1,complete_case
+1,laplace logistic regression,Complete-case,0.93,0.0112,0.0481,0.8873,,0.0005,0.012,,,1.1479,853,11,complete_case
+2,laplace logistic regression,Median imputation,0.7616,0.0144,0.071,0.9487,0.7113,0.0146,0.0737,1.2443,-0.0502,0.7844,5403,82,median
+3,laplace logistic regression,Mean imputation,0.761,0.0144,0.071,0.9491,0.7019,0.0146,0.0742,1.3912,-0.0591,0.7847,5403,82,mean
+4,laplace logistic regression,MICE imputation,0.7608,0.0144,0.0711,0.9479,0.7016,0.0146,0.0742,1.3863,-0.0593,0.7855,5403,82,mice
+5,laplace logistic regression,MICE imputation + missing flags,0.7618,0.0144,0.0711,0.9436,0.6948,0.0148,0.0745,0.7923,-0.067,0.7781,5403,82,mice_flags

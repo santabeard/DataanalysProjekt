@@ -1,7 +1,8 @@
 import argparse
 import pathlib as pl
 import random
-from datetime import date
+import time
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,10 @@ from shared.sampling import fit_model
 
 DATA_DIR = pl.Path("Data/synth")
 FEATURES = ["age", "male", "body_temp", "systolic_bp", "pulse_rate", "n_vitals"]
+
+
+def _log(message):
+    print(f"[{datetime.now():%H:%M:%S}] {message}", flush=True)
 
 
 def load_data(n_patients=None, seed=None, day=None):
@@ -69,13 +74,21 @@ def run_orchestrator():
     )
 
     args = parser.parse_args()
+    started = time.perf_counter()
+    _log(
+        f"start n_patients={args.n_patients} seed={args.seed} target={args.target} "
+        f"method={args.method}"
+    )
 
     if args.quick:
         args.iter, args.burn, args.chains = 200, 80, 1
+        _log(f"quick mode iter={args.iter} burn={args.burn} chains={args.chains}")
 
     random.seed(args.seed)
 
+    _log("loading or generating synthetic data")
     data_df = load_data(n_patients=args.n_patients, seed=args.seed, day=args.timestamp)
+    _log(f"loaded data rows={len(data_df):,} positives={int(data_df[args.target].sum())}")
     X = data_df[FEATURES].apply(pd.to_numeric, errors="coerce").astype(float)
     y = data_df[args.target]
     stratify = y if y.value_counts().min() >= 2 else None
@@ -85,10 +98,16 @@ def run_orchestrator():
     )
     X_train, X_test = X.iloc[idx_train], X.iloc[idx_test]
     y_train, y_test = y.iloc[idx_train], y.iloc[idx_test]
+    _log(
+        f"split train n={len(idx_train):,} events={int(y_train.sum())} "
+        f"test n={len(idx_test):,} events={int(y_test.sum())}"
+    )
     train_median = X_train.median()
     X_train = X_train.fillna(train_median).fillna(0)
     X_test = X_test.fillna(train_median).fillna(0)
 
+    _log(f"fitting {args.method} logistic regression")
+    fit_started = time.perf_counter()
     posterior_samples = fit_model(
         X_train,
         y_train,
@@ -99,13 +118,25 @@ def run_orchestrator():
         prior_std=args.prior_std,
         seed=args.seed,
     )
+    _log(
+        f"fit done draws={len(posterior_samples)} "
+        f"elapsed={time.perf_counter() - fit_started:.1f}s"
+    )
+
+    _log("evaluating held-out probabilities and writing plots")
     results = evaluate_model(posterior_samples, X_test, y_test, out_path=args.out)
+    _log(f"wrote {args.out}")
+
+    _log("building missingness scoreboards")
     build_scoreboards(
         data_df, FEATURES, args.target, args.out, idx_train, idx_test,
         method=args.method, iter=args.iter, burn=args.burn, chains=args.chains,
         prior_std=args.prior_std, seed=args.seed,
     )
-    print(f"wrote {args.out} and 3 scoreboards in {pl.Path(args.out).parent}")
+    _log(
+        "wrote 3 scoreboards in "
+        f"{pl.Path(args.out).parent} total_elapsed={time.perf_counter() - started:.1f}s"
+    )
     return results
 
 

@@ -14,27 +14,59 @@ def plot_path(out_path, suffix):
     return out_path.with_name(f"{out_path.stem}{suffix}.png")
 
 
-def plot_calibration(y, probabilities, slope, intercept, out_path, title):
-    bins = min(10, len(y))
-    ranked_bins = pd.qcut(
-        pd.Series(probabilities).rank(method="first"),
-        q=bins,
-        labels=False,
-        duplicates="drop",
+def calibration_bins(y, probabilities, bins=10):
+    y = np.asarray(y, dtype=float)
+    probabilities = np.asarray(probabilities, dtype=float)
+    bins = min(bins, len(y))
+    ranks = pd.Series(probabilities).rank(method="first")
+    codes, rank_edges = pd.qcut(
+        ranks, q=bins, labels=False, retbins=True, duplicates="drop"
     )
-    grouped = pd.DataFrame(
-        {"bin": ranked_bins, "observed": y, "predicted": probabilities}
-    ).groupby("bin", observed=True).mean()
+    edges = np.interp(
+        rank_edges,
+        np.arange(1, len(probabilities) + 1),
+        np.sort(probabilities),
+    )
+    grouped = (
+        pd.DataFrame({
+            "bin": codes,
+            "observed": y,
+            "predicted": probabilities,
+        })
+        .groupby("bin", observed=True)
+        .agg(
+            predicted=("predicted", "mean"),
+            observed=("observed", "mean"),
+            n=("observed", "size"),
+            events=("observed", "sum"),
+        )
+    )
+    return grouped, edges
+
+
+def plot_calibration(y, probabilities, slope, intercept, out_path, title):
+    grouped, edges = calibration_bins(y, probabilities)
+    probabilities = np.asarray(probabilities, dtype=float)
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], "--", color="gray", label="Ideal")
+    for edge in np.unique(edges[1:-1]):
+        ax.axvline(edge, color="#e6e5e1", linewidth=0.8, linestyle=":")
     ax.plot(
         grouped["predicted"],
         grouped["observed"],
         "o-",
         color="#2463a6",
-        label="Observed by risk decile",
+        label="Observed by risk decile (n/events labelled)",
     )
+    for _, row in grouped.iterrows():
+        ax.annotate(
+            f"n={int(row['n'])}  events={int(row['events'])}",
+            (row["predicted"], row["observed"]),
+            xytext=(4, 4),
+            textcoords="offset points",
+            fontsize=7,
+        )
     if np.isfinite(slope) and np.isfinite(intercept):
         risk = np.linspace(
             max(probabilities.min(), 1e-8),

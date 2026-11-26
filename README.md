@@ -83,8 +83,11 @@ The synthetic-data → model → scoreboards flow is documented in
 [`Docs/evaluation/FLOW.md`](Docs/evaluation/FLOW.md).
 
 ```bash
-PYTHONPATH=src python src/orchestrator.py --n-patients 800 --seed 7 --quick
+PYTHONPATH=src python src/orchestrator.py --n-patients 5000 --seed 7 --quick
 ```
+
+The run prints timestamped stage logs for data loading/generation, splitting, fitting,
+evaluation, and scoreboard writing.
 
 ## Data pipeline
 

@@ -8,15 +8,15 @@ models are used. Metric definitions are in [`METRICS.md`](METRICS.md).
 
 ```mermaid
 flowchart TD
-    CLI["python src/orchestrator.py<br/>run_orchestrator() — src/orchestrator.py:38"] --> LOAD["load_data(n_patients, seed, day)<br/>src/orchestrator.py:18"]
+    CLI["python src/orchestrator.py<br/>run_orchestrator() — src/orchestrator.py:43"] --> LOAD["load_data(n_patients, seed, day)<br/>src/orchestrator.py:23"]
     LOAD -->|CSV exists| CSV["Data/synth/&lt;size&gt;_&lt;seed&gt;_&lt;date&gt;.csv"]
     LOAD -->|CSV missing| GEN["generate_data.generate(...)<br/>generate_data.py:129"]
     GEN --> RAW["synth_subset_5k.main()<br/>10 raw parquet tables"]
     RAW --> BUILD["02_build.py subprocess<br/>cleaned parquet tables"]
     BUILD --> JOIN["_one_row_per_visit()<br/>one row per ED visit"]
     JOIN --> CSV
-    CSV --> SPLIT["stratified train/test split<br/>src/orchestrator.py:81-85"]
-    SPLIT --> FILL["train-median fill + 0 fallback<br/>src/orchestrator.py:86-88"]
+    CSV --> SPLIT["stratified train/test split<br/>src/orchestrator.py:94-98"]
+    SPLIT --> FILL["train-median fill + 0 fallback<br/>src/orchestrator.py:105-107"]
     FILL --> FIT["fit_model(...)<br/>shared/sampling.py:80"]
     FIT --> MODEL["build_model(...)<br/>shared/models.py:8"]
     MODEL --> DRAWS["posterior weight draws"]
@@ -30,28 +30,30 @@ Run from the repository root:
 
 ```bash
 PYTHONPATH=src python -m pytest -q Tests
-PYTHONPATH=src python src/orchestrator.py --n-patients 800 --seed 7 --quick
+PYTHONPATH=src python src/orchestrator.py --n-patients 5000 --seed 7 --quick
 ```
 
-The `--quick` flag lowers `--iter`, `--burn` and `--chains` for a fast check.
+The `--quick` flag lowers `--iter`, `--burn` and `--chains` for a fast check. The run prints
+timestamped stage logs for data loading/generation, split sizes, fit duration, evaluation,
+scoreboard writing and total elapsed time.
 
 ## 2. Data
 
 The generated CSV is named `<size>_<seed>_<date>.csv` under `Data/synth/`. The example run
-uses `Data/synth/800_7_2026-11-26.csv`:
+uses `Data/synth/5K_7_2026-11-26.csv`:
 
 | Property | Value |
 |---|---|
-| ED visits | `2,854` |
-| Patients | `800` |
+| ED visits | `18,010` |
+| Patients | `5,000` |
 | Hospitals | `12` |
 | Target | `died_30d` |
-| Positive visits | `43` (`1.5%`) |
+| Positive visits | `273` (`1.5%`) |
 
 `load_data()` generates the file if it is missing, then reads it. It does not depend on the
 generator return path; it re-globs the expected file name.
 
-Features used by the orchestrator are defined in `src/orchestrator.py:15`:
+Features used by the orchestrator are defined in `src/orchestrator.py:16`:
 
 ```python
 ["age", "male", "body_temp", "systolic_bp", "pulse_rate", "n_vitals"]
@@ -61,7 +63,7 @@ Other generated columns are available in the CSV but are not used in this evalua
 
 ## 3. Stratified train/test split
 
-`src/orchestrator.py:81-85` uses:
+`src/orchestrator.py:94-98` uses:
 
 ```python
 stratify = y if y.value_counts().min() >= 2 else None
@@ -76,12 +78,11 @@ example CSV and seed `7`, this gives:
 
 | Split | Visits | Events | Event rate |
 |---|---:|---:|---:|
-| Train | `1,997` | `30` | `1.50%` |
-| Test | `857` | `13` | `1.52%` |
+| Train | `12,607` | `191` | `1.51%` |
+| Test | `5,403` | `82` | `1.52%` |
 
-Before stratification the split was `35` train events and `8` test events. Stratification
-balances the event rate but does not group by patient, so the same patient can still appear in
-both train and test.
+Stratification balances the event rate but does not group by patient, so the same patient can
+still appear in both train and test.
 
 `build_scoreboards()` receives the same `idx_train` and `idx_test`, so all scoreboard tables
 use the same stratified split.
@@ -103,7 +104,7 @@ an approximate posterior method, not a non-Bayesian model. A clearer label would
 `Bayesian logistic regression (Laplace approximation)`. The label is currently generated at
 `src/evaluation/evaluator.py:154` from `f"{method} logistic regression"`.
 
-Available `--method` values (`src/orchestrator.py:43-49`):
+Available `--method` values (`src/orchestrator.py:48-54`):
 
 | Method | Meaning |
 |---|---|
@@ -145,6 +146,11 @@ hospital-comparison pipeline, not to the orchestrator scoreboards.
 
 This is a sanity check for one model: the current `--method` with train-median imputation.
 
+`plot_calibration()` in `src/evaluation/plots.py` splits held-out risks into 10 equal-count
+bins, draws faint vertical lines at bin boundaries, and labels each plotted point with
+`n=<bin size>` and `events=<events in bin>`. This makes it visible when a bin itself has very
+few events, even though the full test set now has `82` events.
+
 ### 5.2 Orchestrator scoreboards
 
 `build_scoreboards()` at `src/evaluation/evaluator.py:125` compares five missing-data strategies:
@@ -183,9 +189,10 @@ pipeline and is not overwritten by the orchestrator.
    boosting.
 
 Ranking in the wide scoreboard uses negative log likelihood as recorded, restricted to rows
-with at least `5` events (`src/evaluation/evaluator.py:206-208`). In the example run, the four
-imputation strategies have `13` test events and are ranked; complete-case has `1` event and is
-left unranked.
+with at least `5` events (`src/evaluation/evaluator.py:206-208`). In the example run, all five
+strategies are rankable because complete-case has `11` events, but it keeps only `853` of the
+`5,403` test visits and has `0` events after `50%` deletion, so its high rank should be read with
+that caveat.
 
 ## 6. Distribution-shift simulation attempt
 
@@ -215,12 +222,12 @@ In the example run, the deletion levels have this effect on complete-case:
 
 | Deletion | Complete-case `n` | Complete-case events |
 |---|---:|---:|
-| `0.0` | `132` | `1` |
-| `0.25` | `26` | `0` |
-| `0.5` | `1` | `0` |
+| `0.0` | `853` | `11` |
+| `0.25` | `156` | `2` |
+| `0.5` | `12` | `0` |
 
-That is why complete-case metrics are unstable and why its AUC/calibration/O:E values are blank
-after deletion: there are no events left.
+Complete-case keeps far fewer visits than the imputation strategies. Its `50%` deletion row has
+no events, so AUC, calibration and O:E are blank there.
 
 The separate hospital simulator creates a richer shift: ward-level recording behavior and a
 shared “lab panel ordered” gate where all five labs go missing together
