@@ -129,6 +129,31 @@ class EvaluateModelTests(unittest.TestCase):
             self.assertTrue(
                 Path(temp_dir, "calibration_calibration.png").is_file()
             )
+    def test_build_scoreboards_writes_all_three_views(self):
+        rng = np.random.default_rng(0)
+        n = 40
+        df = pd.DataFrame({
+            "age": np.arange(n, dtype=float),
+            "body_temp": np.where(rng.random(n) < 0.3, np.nan, rng.normal(37, 0.5, n)),
+            "died_30d": np.arange(n) % 2,
+            "hospital": ["a" if i % 2 == 0 else "b" for i in range(n)],
+        })
+        idx = np.arange(n)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "metrics.csv"
+            boards = evaluator.build_scoreboards(
+                df, ["age", "body_temp"], "died_30d", out, idx[:30], idx[30:],
+                method="laplace", iter=20, burn=5, chains=1, seed=7,
+            )
+            for column in (
+                "AUC as recorded", "Brier score as recorded",
+                "Negative log likelihood as recorded", "O:E ratio as recorded",
+            ):
+                self.assertIn(column, boards["scoreboard"].columns)
+            self.assertEqual(len(boards["by_strategy"]), 15)
+            self.assertEqual(set(boards["by_hospital"]["Hospital"]), {"a", "b"})
+            for path in boards["paths"].values():
+                self.assertTrue(Path(path).is_file())
 
 
 if __name__ == "__main__":

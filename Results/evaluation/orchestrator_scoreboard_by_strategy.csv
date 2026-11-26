@@ -1,0 +1,16 @@
+Prediction model,Missing-data handling,Key,Deletion,n,events,AUC,Brier score,Negative log likelihood,O:E ratio,Calibration slope
+laplace logistic regression,Median imputation,median,0.0,857,8,0.8072,0.0088,0.0479,0.5197,1.2502
+laplace logistic regression,Median imputation,median,0.25,857,8,0.7811,0.0087,0.0468,0.576,1.2789
+laplace logistic regression,Median imputation,median,0.5,857,8,0.7194,0.0092,0.0494,0.6577,1.1149
+laplace logistic regression,Mean imputation,mean,0.0,857,8,0.8072,0.0088,0.0479,0.5198,1.25
+laplace logistic regression,Mean imputation,mean,0.25,857,8,0.7524,0.0087,0.0474,0.5877,1.2181
+laplace logistic regression,Mean imputation,mean,0.5,857,8,0.7259,0.0091,0.0487,0.6908,1.2145
+laplace logistic regression,MICE imputation,mice,0.0,857,8,0.8072,0.0088,0.0478,0.5195,1.2481
+laplace logistic regression,MICE imputation,mice,0.25,857,8,0.7488,0.0087,0.0475,0.5847,1.1974
+laplace logistic regression,MICE imputation,mice,0.5,857,8,0.7273,0.0091,0.0487,0.691,1.2125
+laplace logistic regression,MICE imputation + missing flags,mice_flags,0.0,857,8,0.8045,0.0088,0.0478,0.5184,1.1349
+laplace logistic regression,MICE imputation + missing flags,mice_flags,0.25,857,8,0.7531,0.0089,0.0509,0.4369,1.1805
+laplace logistic regression,MICE imputation + missing flags,mice_flags,0.5,857,8,0.7029,0.0096,0.0562,0.3827,1.0252
+laplace logistic regression,Complete-case,complete_case,0.0,125,1,0.9839,0.0067,0.0269,0.6436,2.3022
+laplace logistic regression,Complete-case,complete_case,0.25,29,0,,0.0001,0.0068,,
+laplace logistic regression,Complete-case,complete_case,0.5,2,0,,0.0,0.0016,,

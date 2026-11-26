@@ -3,11 +3,12 @@ import pathlib as pl
 import random
 from datetime import date
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from core.data_pipeline.synthetic import generate_data
-from evaluation.evaluator import evaluate_model
+from evaluation.evaluator import build_scoreboards, evaluate_model
 from shared.sampling import fit_model
 
 DATA_DIR = pl.Path("Data/synth")
@@ -76,11 +77,16 @@ def run_orchestrator():
 
     data_df = load_data(n_patients=args.n_patients, seed=args.seed, day=args.timestamp)
     X = data_df[FEATURES].apply(pd.to_numeric, errors="coerce").astype(float)
-    X = X.fillna(X.median()).fillna(0)
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, data_df[args.target], test_size=args.test_frac, random_state=args.seed
+    y = data_df[args.target]
+    idx_train, idx_test = train_test_split(
+        np.arange(len(X)), test_size=args.test_frac, random_state=args.seed
     )
+    X_train, X_test = X.iloc[idx_train], X.iloc[idx_test]
+    y_train, y_test = y.iloc[idx_train], y.iloc[idx_test]
+    train_median = X_train.median()
+    X_train = X_train.fillna(train_median).fillna(0)
+    X_test = X_test.fillna(train_median).fillna(0)
+
     posterior_samples = fit_model(
         X_train,
         y_train,
@@ -92,7 +98,12 @@ def run_orchestrator():
         seed=args.seed,
     )
     results = evaluate_model(posterior_samples, X_test, y_test, out_path=args.out)
-    print(f"wrote {args.out}")
+    build_scoreboards(
+        data_df, FEATURES, args.target, args.out, idx_train, idx_test,
+        method=args.method, iter=args.iter, burn=args.burn, chains=args.chains,
+        prior_std=args.prior_std, seed=args.seed,
+    )
+    print(f"wrote {args.out} and 3 scoreboards in {pl.Path(args.out).parent}")
     return results
 
 
