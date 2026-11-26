@@ -1,34 +1,33 @@
 import argparse
 import pathlib as pl
 import random
+from datetime import date
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+from core.data_pipeline.synthetic import generate_data
 from evaluation.evaluator import evaluate_model
 from shared.sampling import fit_model
 
+DATA_DIR = pl.Path("Data/synth")
+FEATURES = ["age", "male", "body_temp", "systolic_bp", "pulse_rate", "n_vitals"]
 
-def load_data(n_samples=None, seed=None, setting=None, timestamp=None):
-    """
-    Load synthetic data named setting_samples_seed_timestamp.csv.
-    If timestamp is omitted, load the file with the latest timestamp in its name.
-    """
-    data_dir = pl.Path("Data/synth")
-    if timestamp is None:
-        pattern = f"{setting}_{n_samples}_{seed}_*.csv"
-        matches = sorted(data_dir.glob(pattern))
+
+def load_data(n_patients=None, seed=None, day=None):
+    """Load generated data, generating it first if the matching CSV is missing."""
+    if day is None:
+        pattern = f"{generate_data.size_label(n_patients)}_{seed}_*.csv"
+        matches = sorted(DATA_DIR.glob(pattern))
         if not matches:
-            raise FileNotFoundError(
-                f"No data files found matching {data_dir / pattern}"
-            )
+            generate_data.generate(n_patients, seed, out=DATA_DIR)
+            matches = sorted(DATA_DIR.glob(pattern))
         path = matches[-1]
     else:
-        path = data_dir / f"{setting}_{n_samples}_{seed}_{timestamp}.csv"
+        path = DATA_DIR / generate_data.file_name(n_patients, seed, day)
         if not path.is_file():
-            raise FileNotFoundError(f"Data file not found: {path}")
-
+            generate_data.generate(n_patients, seed, out=DATA_DIR, day=day)
     return pd.read_csv(path)
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -53,15 +52,14 @@ def run_orchestrator():
     parser.add_argument("--iter", type=int, default=4000, help="Number of iterations for the sampler.")
     parser.add_argument("--burn", type=int, default=1500, help="Number of burn-in iterations for the sampler.")
     parser.add_argument("--chains", type=int, default=2, help="Number of chains for the sampler.")
-    parser.add_argument("--n-samples", type=int, default=10, help="Number of samples to load.")
-    parser.add_argument("--setting", type=str, default="setting1", help="Setting to use for data loading.")
+    parser.add_argument("--n-patients", type=int, default=15000, help="Number of patients to generate/load.")
     parser.add_argument(
         "--timestamp",
-        type=str,
+        type=date.fromisoformat,
         default=None,
-        help="Timestamp of the data file to load. If omitted, the latest timestamp is used.",
+        help="Data date (YYYY-MM-DD) to generate/load. If omitted, the latest date is used.",
     )
-    parser.add_argument("--target", type=str, default="mortality", help="Target variable for prediction.")
+    parser.add_argument("--target", type=str, default="died_30d", help="Target variable for prediction.")
     parser.add_argument("--quick", action="store_true", help="Run a quick test with fewer iterations.")
     parser.add_argument(
         "--out",
@@ -76,23 +74,13 @@ def run_orchestrator():
 
     random.seed(args.seed)
 
-    # Step 1: Load data
-    data_df = load_data(
-        n_samples=args.n_samples,
-        seed=args.seed,
-        setting=args.setting,
-        timestamp=args.timestamp,
-    )
+    data_df = load_data(n_patients=args.n_patients, seed=args.seed, day=args.timestamp)
+    X = data_df[FEATURES].apply(pd.to_numeric, errors="coerce").astype(float)
+    X = X.fillna(X.median()).fillna(0)
 
-    # Step 2: Train/test split
     X_train, X_test, y_train, y_test = train_test_split(
-        data_df.drop(columns=[args.target]),
-        data_df[args.target],
-        test_size=args.test_frac,
-        random_state=args.seed,
+        X, data_df[args.target], test_size=args.test_frac, random_state=args.seed
     )
-
-    # Step 3: Fit the model dynamically
     posterior_samples = fit_model(
         X_train,
         y_train,
@@ -103,6 +91,10 @@ def run_orchestrator():
         prior_std=args.prior_std,
         seed=args.seed,
     )
+    results = evaluate_model(posterior_samples, X_test, y_test, out_path=args.out)
+    print(f"wrote {args.out}")
+    return results
 
-    # Step 4: Evaluate the posterior weight draws on the held-out data.
-    evaluate_model(posterior_samples, X_test, y_test, out_path=args.out)
+
+if __name__ == "__main__":
+    run_orchestrator()
