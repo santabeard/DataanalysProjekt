@@ -78,8 +78,10 @@ def run_orchestrator():
     data_df = load_data(n_patients=args.n_patients, seed=args.seed, day=args.timestamp)
     X = data_df[FEATURES].apply(pd.to_numeric, errors="coerce").astype(float)
     y = data_df[args.target]
+    stratify = y if y.value_counts().min() >= 2 else None
     idx_train, idx_test = train_test_split(
-        np.arange(len(X)), test_size=args.test_frac, random_state=args.seed
+        np.arange(len(X)), test_size=args.test_frac, random_state=args.seed,
+        stratify=stratify,
     )
     X_train, X_test = X.iloc[idx_train], X.iloc[idx_test]
     y_train, y_test = y.iloc[idx_train], y.iloc[idx_test]

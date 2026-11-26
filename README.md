@@ -77,6 +77,15 @@ python3 src/evaluation/run_hospital_comparison.py \
 
 Drop `--quick` for the full comparison. Add `--with-standard` for ridge/boosting baselines.
 
+## Orchestrator evaluation
+
+The synthetic-data → model → scoreboards flow is documented in
+[`Docs/evaluation/FLOW.md`](Docs/evaluation/FLOW.md).
+
+```bash
+PYTHONPATH=src python src/orchestrator.py --n-patients 800 --seed 7 --quick
+```
+
 ## Data pipeline
 
 The pipeline needs a `data_info/` folder with the real variable and lab/SNOMED mappings. It is
