@@ -147,9 +147,8 @@ hospital-comparison pipeline, not to the orchestrator scoreboards.
 This is a sanity check for one model: the current `--method` with train-median imputation.
 
 `plot_calibration()` in `src/evaluation/plots.py` splits held-out risks into 10 equal-count
-bins, draws faint vertical lines at bin boundaries, and labels each plotted point with
-`n=<bin size>` and `events=<events in bin>`. This makes it visible when a bin itself has very
-few events, even though the full test set now has `82` events.
+bins and draws faint vertical lines at bin boundaries. Per-bin `n` and `events` counts are
+computed by `calibration_bins()` for tests, but are not printed on the plot.
 
 ### 5.2 Orchestrator scoreboards
 

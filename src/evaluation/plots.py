@@ -57,16 +57,8 @@ def plot_calibration(y, probabilities, slope, intercept, out_path, title):
         grouped["observed"],
         "o-",
         color="#2463a6",
-        label="Observed by risk decile (n/events labelled)",
+        label="Observed by risk decile",
     )
-    for _, row in grouped.iterrows():
-        ax.annotate(
-            f"n={int(row['n'])}  events={int(row['events'])}",
-            (row["predicted"], row["observed"]),
-            xytext=(4, 4),
-            textcoords="offset points",
-            fontsize=7,
-        )
     if np.isfinite(slope) and np.isfinite(intercept):
         risk = np.linspace(
             max(probabilities.min(), 1e-8),
