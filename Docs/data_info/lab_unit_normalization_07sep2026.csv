@@ -1,0 +1,47 @@
+term_name,unit,canonical_unit,factor,action
+B-Leukocyter,10^9/L,x10(9)/L,1.0,convert
+B-Leukocyter,10E9/L,x10(9)/L,1.0,convert
+B-Leukocyter,10(9)/L,x10(9)/L,1.0,convert
+B-Leukocyter,x10^9/L,x10(9)/L,1.0,convert
+B-Lymfocyter,10^9/L,x10(9)/L,1.0,convert
+B-Lymfocyter,10E9/L,x10(9)/L,1.0,convert
+B-Monocyter,10^9/L,x10(9)/L,1.0,convert
+B-Monocyter,10E9/L,x10(9)/L,1.0,convert
+B-SR,mm/h,mm,1.0,convert
+B-Trombocyter,10^9/L,x10(9)/L,1.0,convert
+B-Trombocyter,10E9/L,x10(9)/L,1.0,convert
+B-Trombocyter,10(9)/L,x10(9)/L,1.0,convert
+B-Trombocyter,x10^9/L,x10(9)/L,1.0,convert
+CRP lokalt kap/ven,mg/ml,mg/L,1000.0,convert
+Hb lokalt-kap,V,,,drop
+Hb lokalt-kap,HSV dsk,,,drop
+Hb lokalt-kap,E51,,,drop
+Hb lokalt-kap,g/l,g/L,1.0,convert
+Hb lokalt-ven,E51,,,drop
+P-Fibrin-D-Dimer,mg/L FEU,mg/L,1.0,convert
+P-Glukos lokalt-kap,g/l,,,drop
+P-Glukos lokalt-kap,AVC,,,drop
+P-Kreatinin,umol/L,mikromol/L,1.0,convert
+P-Kreatinin,µmol/L,mikromol/L,1.0,convert
+P-Troponin T,mikrog/L,ng/L,1000.0,convert
+P-Troponin T,nanog/L,ng/L,1.0,convert
+P-ALAT,ukat/L,µkat/L,1.0,convert
+S-ALAT,mikrokat/L,µkat/L,1.0,convert
+S-ALAT,ukat/L,µkat/L,1.0,convert
+S-ASAT,mikrokat/L,µkat/L,1.0,convert
+S-ASAT,ukat/L,µkat/L,1.0,convert
+S-Bilirubin,mikromol/L,µmol/L,1.0,convert
+S-Bilirubin,umol/L,µmol/L,1.0,convert
+S-Kreatinin,umol/L,µmol/L,1.0,convert
+S-Troponin T,µg/L,ng/L,1000.0,convert
+S-Troponin T,ug/L,ng/L,1000.0,convert
+B-Eosinofila externt lab.,10(9)/L,x10(9)/L,1.0,convert
+B-Monocyter externt lab.,10(9)/L,x10(9)/L,1.0,convert
+B-Lymfocyter externt lab.,10(9)/L,x10(9)/L,1.0,convert
+B-Neutrofila externt lab.,10(9)/L,x10(9)/L,1.0,convert
+B-Trombocyter externt lab.,10(9)/L,x10(9)/L,1.0,convert
+B-Basofila externt lab.,10(9)/L,x10(9)/L,1.0,convert
+Hb lokalt-kap,E81,,,drop
+Hb lokalt-kap,g/lit,g/L,1.0,convert
+Hb lokalt-kap,mg/L,,,drop
+Hb lokalt-ven,g/l,g/L,1.0,convert

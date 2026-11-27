@@ -12,9 +12,7 @@ Each cell stores a LogitNormal(mu, sigma) predictive distribution.
 
 Three levels of access:
   1. predict() / predict_death()
-     Posterior predictive mean E[sigmoid(z)], z ~ N(mu, sigma^2), computed
-     by Gauss-Hermite quadrature in probability space (sigmoid(mu) would
-     be the median, not the mean).
+     Posterior predictive mean: sigmoid(mu). Fast table lookup.
 
   2. predict_distribution() / predict_death_distribution()
      Full LogitNormal(mu, sigma) parameters from prediction grids.
@@ -24,12 +22,12 @@ Three levels of access:
      See ParameterPosterior for the covariance decomposition.
 
 When a patient has two complaints, predictions mix in probability space:
-    P = 0.5 * E[sigmoid(z_1)] + 0.5 * E[sigmoid(z_2)]
+    P = 0.5 * sigmoid(mu_1) + 0.5 * sigmoid(mu_2)
 This is the correct E[P] under complaint uncertainty (mixing in logit
 space would be biased by Jensen's inequality).
 
 Usage:
-    from resources.ed_atlas import EdAtlas
+    from ed_atlas import EdAtlas
 
     atlas = EdAtlas()
 
@@ -50,6 +48,6 @@ Usage:
     atlas.mort_sctids     # list[str], length 437
 """
 
-from ._lookup import EdAtlas, ParameterPosterior
+from ed_atlas._lookup import EdAtlas, ParameterPosterior
 
 __all__ = ["EdAtlas", "ParameterPosterior"]

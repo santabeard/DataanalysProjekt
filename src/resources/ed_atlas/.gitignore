@@ -1,0 +1,8 @@
+# PyMC traces and intermediate files used by convert_traces.py
+*.nc
+*.parquet
+
+# shipped posteriors are tracked, except the diagnosis posterior which
+# exceeds GitHub's 100MB limit and is shipped out-of-band
+!data/*.npz
+data/atlas_diagnosis_posterior.npz

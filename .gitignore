@@ -24,6 +24,7 @@ MANIFEST
 *.parquet
 *.npz
 
+src/resources/ed_atlas.zip
 !Data/**/*.parquet
 !Data/**/*.csv
 !Data/**/*.npz
@@ -44,3 +45,6 @@ archive
 .DS_Store
 *.code-workspace
 node_modules/
+
+# --- large artefacts shipped out-of-band (exceed GitHub 100MB limit) -----
+src/resources/ed_atlas.zip
