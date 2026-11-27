@@ -24,7 +24,7 @@ TRAIN = Path(os.environ.get("SWED_TRAIN", ROOT / "data" / "train"))
 REF = Path(os.environ.get("SWED_REF", ROOT / "docs" / "data_info"))
 WORK = Path(os.environ.get("SWED_WORK", Path.cwd()))  # where out/exclude_lopnr.csv lives
 
-# The 6 vitals, by SNOMED ID. subset.py writes these IDs into vitals_snomed.
+# The 6 vitals, by SNOMED ID. SWED_subset.py writes these IDs into vitals_snomed.
 VITAL_SNOMED = {
     "271649006": "systolic_bp",
     "271650006": "diastolic_bp",
@@ -36,7 +36,7 @@ VITAL_SNOMED = {
 }
 
 # UU measurements: NameOfMeasurement -> [(result column, SNOMED ID), ...]. Same SNOMED IDs as
-# VITAL_SNOMED, so UU and SWED end up with the same vital_* columns. uu_subset.py turns each row
+# VITAL_SNOMED, so UU and SWED end up with the same vital_* columns. UU_subset.py turns each row
 # into one reading per pair (Blodtryck -> systolic + diastolic). Names not listed are dropped.
 UU_MEASUREMENT_SNOMED = {
     "Blodtryck":         [("ResultOfMeasurement1", "271649006"),   # systolic, mmHg

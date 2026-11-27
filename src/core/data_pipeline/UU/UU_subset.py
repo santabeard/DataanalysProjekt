@@ -25,7 +25,7 @@ readings (systolic, diastolic). Same SNOMED IDs as SWED.
 The label is the exact patient count (500 -> "500", 100000 -> "100K"). Finished
 files are skipped on rerun (pass --overwrite to redo them).
 
-    python3 uu_subset.py --n 100000
+    python3 UU_subset.py --n 100000
 """
 
 import argparse
@@ -38,8 +38,17 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
+
 from common import INTERIM, REF, UU_MEASUREMENT_SNOMED, guard_output, log, uu_raw_table
-from subset import size_label
+from SWED_subset import size_label
 
 EDVISIT_COLUMNS = ["PersonId", "ContactId", "ED_VisitDateTime", "ED_VisitDuration", "AgeAtED_Visit",
                    "Sex", "ED_PresentedComplaint", "DateOfDeath"]

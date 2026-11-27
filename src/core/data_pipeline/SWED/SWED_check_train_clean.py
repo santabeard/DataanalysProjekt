@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Sanity-check <N>K_train_clean.parquet against the train_clean design rules.
 
-    python3 check_train_clean.py [label] [train_dir]     # defaults: 500K, data/train
-    python3 check_train_clean.py path/to/100K_uu_train_clean.parquet
+    python3 SWED_check_train_clean.py [label] [train_dir]     # defaults: 500K, data/train
+    python3 SWED_check_train_clean.py path/to/100K_uu_train_clean.parquet
 
 Diagnosis checks are skipped for tables without diag_* columns (UU).
 """
@@ -10,6 +10,15 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
 
 from common import TRAIN
 

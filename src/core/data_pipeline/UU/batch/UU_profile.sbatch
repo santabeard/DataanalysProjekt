@@ -7,7 +7,7 @@
 #SBATCH -o uu_profile_%j.log
 
 # Aggregate-only profile of the uu_data tables, written to the log above.
-# Submit from the pipeline folder:   sbatch batch/uu_profile.sbatch
+# Submit from the UU pipeline folder (src/core/data_pipeline/UU/):   sbatch batch/UU_profile.sbatch
 #
 # Privacy rules (the log is meant to be exported):
 #   - ID-like columns (lopnr, *id, pnr, ...): no values, only counts and overlap rates.
@@ -22,8 +22,8 @@ set -euo pipefail
 module load python_ML_packages/3.9.5-cpu
 cd "$SLURM_SUBMIT_DIR"
 
-export UU_DIR="${UU_DIR:-$SLURM_SUBMIT_DIR/../../../data/raw/uu_data}"
-export SWED_CORE="${SWED_CORE:-$SLURM_SUBMIT_DIR/../../../data/raw/swed_data/copy_swed_ed_core.parquet}"
+export UU_DIR="${UU_DIR:-$SLURM_SUBMIT_DIR/../../../../data/raw/uu_data}"
+export SWED_CORE="${SWED_CORE:-$SLURM_SUBMIT_DIR/../../../../data/raw/swed_data/copy_swed_ed_core.parquet}"
 
 python3 - <<'PYEOF'
 import os, re, sys, itertools

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Build the model-ready UU train_clean table from the <label>_UU_SUB_* subset files.
 
-Same rules as build_train_clean.py (SWED), and the same code for the shared steps,
+Same rules as SWED_build_train_clean.py (SWED), and the same code for the shared steps,
 so the two tables have the same columns wherever the data allows:
 
   visits     copy_edvisit. Visits with no ED_VisitDuration are dropped, and so are
              visits with Sex other than F/M (U: 15 visits in the whole table).
   vitals     The first reading per vital between 60 min before arrival and the
-             visit end, from the vitals_snomed readings uu_subset.py wrote.
+             visit end, from the vitals_snomed readings UU_subset.py wrote.
              Measurements start 2017-11, so earlier visits have no vitals; they
              are kept with empty vital_* columns, as missing vitals are in SWED.
   diagnosis  The first MainDiagnosis from a specialist care contact (Type OV or SV,
@@ -21,7 +21,7 @@ UU times are Swedish local time (no timezone), so the arrival date is taken as i
 Not in UU, so not in the output: death_date_inexact. The patient and visit IDs keep
 their UU names (PersonId, ContactId): a different ID system from SWED's lopnr_swed.
 
-    python3 uu_build_train_clean.py --label 100K
+    python3 UU_build_train_clean.py --label 100K
 """
 
 import argparse
@@ -32,7 +32,16 @@ import pandas as pd
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from build_train_clean import VITALS, WINDOW_DAYS, assign_diag_class, complaint_rows, first_vitals, first_within_30d
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
+
+from SWED_build_train_clean import VITALS, WINDOW_DAYS, assign_diag_class, complaint_rows, first_vitals, first_within_30d
 from common import INTERIM, TRAIN, VITAL_SNOMED, guard_output, log, raw_table
 
 SPECIALIST_CARE = ["OV", "SV"]  # outpatient specialist + inpatient, as in SWED's patient register
@@ -82,7 +91,7 @@ def to_swed_level(code, vocab, blocks):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subset-dir", type=Path, default=INTERIM, help="where uu_subset.py wrote <label>_UU_SUB_*")
+    ap.add_argument("--subset-dir", type=Path, default=INTERIM, help="where UU_subset.py wrote <label>_UU_SUB_*")
     ap.add_argument("--out-dir", type=Path, default=TRAIN, help="where <label>_uu_train_clean.parquet goes")
     ap.add_argument("--label", default="100K", help="the label prefix of the subset files")
     ap.add_argument("--hdia-min-count", type=int, default=30)

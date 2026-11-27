@@ -6,7 +6,7 @@ Implements the decisions in notes/ed_atlas_vitals_pipeline_discussion.tex
 
   visits     swed_ed_core. Visits with no end time or with ed_inexact_time
              are dropped.
-  vitals     The 6 vitals, by the vitals_snomed column subset.py added to
+  vitals     The 6 vitals, by the vitals_snomed column SWED_subset.py added to
              both measurement tables.
              The first reading between 60 min before arrival and the visit
              end is kept. No hospital filter.
@@ -20,8 +20,8 @@ Implements the decisions in notes/ed_atlas_vitals_pipeline_discussion.tex
              Codes rarer than --complaint-min-count become "other_complaint"
              in the one-hot complaint_bucket_* columns.
 
-    python3 build_train_clean.py
-    python3 build_train_clean.py --label 50K --hdia-min-count 50
+    python3 SWED_build_train_clean.py
+    python3 SWED_build_train_clean.py --label 50K --hdia-min-count 50
 """
 
 import argparse
@@ -29,6 +29,15 @@ import re
 from pathlib import Path
 
 import pandas as pd
+
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
 
 from common import INTERIM, TRAIN, VITAL_SNOMED, guard_output, log
 
@@ -132,7 +141,7 @@ def first_within_30d(visits, registry, date_col, key="lopnr_swed"):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subset-dir", type=Path, default=INTERIM, help="where subset.py wrote <N>K_SUB_*")
+    ap.add_argument("--subset-dir", type=Path, default=INTERIM, help="where SWED_subset.py wrote <N>K_SUB_*")
     ap.add_argument("--out-dir", type=Path, default=TRAIN, help="where <N>K_train_clean.parquet goes")
     ap.add_argument("--label", default="500K", help="the <N>K prefix of the subset files")
     ap.add_argument("--hdia-min-count", type=int, default=30)

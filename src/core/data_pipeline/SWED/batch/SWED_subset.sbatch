@@ -6,12 +6,13 @@
 #SBATCH -J swed_subset
 #SBATCH -o swed_subset_%j.log
 
-# Submit from the folder holding subset.py. Arguments after the file name go to subset.py:
-#   sbatch batch/subset.sbatch --n 500000
-#   sbatch batch/subset.sbatch --n 10000 --out ../../../data/interim/10K
+# Submit from the SWED pipeline folder (src/core/data_pipeline/SWED/).
+# Arguments after the file name go to SWED_subset.py:
+#   sbatch batch/SWED_subset.sbatch --n 500000
+#   sbatch batch/SWED_subset.sbatch --n 10000 --out ../../../../data/interim/10K
 # If it times out, resubmit: finished tables are skipped.
 set -euo pipefail
 module load python_ML_packages/3.9.5-cpu
 export SWED_WORK="$SLURM_SUBMIT_DIR"
 cd "$SWED_WORK"
-python3 subset.py "$@"
+python3 SWED_subset.py "$@"

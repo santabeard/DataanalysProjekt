@@ -16,8 +16,8 @@ size keeps its own sample in "<label>_sample_lopnr.csv", reused on rerun, so
 runs of different sizes can share one folder. Finished tables are skipped on
 rerun (pass --overwrite to redo them).
 
-    python3 subset.py --n 100000                  # all raw tables
-    python3 subset.py --n 500 --tables swed_ed_core sos_deathreg_wide
+    python3 SWED_subset.py --n 100000                  # all raw tables
+    python3 SWED_subset.py --n 500 --tables swed_ed_core sos_deathreg_wide
 """
 
 import argparse
@@ -29,6 +29,15 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
 
 from common import DATA, INTERIM, RAW_PREFIX, REF, VITAL_SNOMED, WORK, guard_output, log, raw_table
 

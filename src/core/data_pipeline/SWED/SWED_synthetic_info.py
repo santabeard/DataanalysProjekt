@@ -13,8 +13,8 @@ complaint_sctid is counted over every row (both roles); other columns once per
 visit. lopnr_swed, ed_visit_id, complaint_role/weight and complaint_bucket_*
 are excluded (identifiers, or derivable from complaint_sctid).
 
-    python3 synthetic_info.py
-    python3 synthetic_info.py --min-count 20 --round-to 10   # stricter
+    python3 SWED_synthetic_info.py
+    python3 SWED_synthetic_info.py --min-count 20 --round-to 10   # stricter
 """
 
 import argparse
@@ -22,6 +22,15 @@ import json
 from pathlib import Path
 
 import pandas as pd
+
+# --- make shared pipeline modules importable from any working directory ---
+import sys as _sys
+from pathlib import Path as _Path
+_PR = _Path(__file__).resolve().parents[1]  # src/core/data_pipeline/
+for _d in (_PR, _PR / "SWED"):
+    if str(_d) not in _sys.path:
+        _sys.path.insert(0, str(_d))
+# --------------------------------------------------------------------------
 
 from common import INTERIM, TRAIN, guard_output, log
 

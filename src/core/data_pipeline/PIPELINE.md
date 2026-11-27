@@ -79,10 +79,12 @@ root/
 │   ├── interim/             everything produced that is not model-ready (subsets, samples, caches)
 │   └── train/               model-ready tables only (*_train_clean.parquet)
 ├── docs/data_info/          reference files (SNOMED mappings)
-└── src/core/data_pipeline/  the scripts in this folder (+ batch/ with Slurm jobs)
+└── src/core/data_pipeline/  common.py + PIPELINE.md, with the scripts under
+    ├── SWED/                the SWED pipeline (+ SWED/batch/ Slurm jobs)
+    └── UU/                  the UU pipeline (+ UU/batch/ Slurm jobs)
 ```
 
-- The scripts must sit directly in `root/src/core/data_pipeline/`: `common.py` finds `root` by going three folders up.
+- `common.py` must sit directly in `root/src/core/data_pipeline/`: it finds `root` by going three folders up. The SWED/ and UU/ scripts add this folder (and `SWED/`) to `sys.path` at import time, so they run correctly from any working directory.
 - Every path can be overridden with an environment variable (section 13).
 
 ---
@@ -112,8 +114,8 @@ root/
 
 | File | What it holds | Used by |
 |---|---|---|
-| `swed_lab_meas_to_snomed.csv` | SWED measurement/lab names (`term_name`) → SNOMED ID | `subset.py` (vitals) |
-| `complaints_combined.csv` | Complaint texts → SNOMED ID(s), incl. the UU texts | `uu_subset.py` (complaints) |
+| `swed_lab_meas_to_snomed.csv` | SWED measurement/lab names (`term_name`) → SNOMED ID | `SWED/SWED_subset.py` (vitals) |
+| `complaints_combined.csv` | Complaint texts → SNOMED ID(s), incl. the UU texts | `UU/UU_subset.py` (complaints) |
 | `swed_profile.txt`, `*.xlsx` | Column statistics and documentation of the SWED tables | Humans only |
 
 ---
@@ -123,29 +125,29 @@ root/
 ```
 SWED                                            UU
 raw/swed_data/copy_*.parquet                    raw/uu_data/copy_*.parquet
-        │ subset.py                                     │ uu_subset.py
+        │ SWED/SWED_subset.py                            │ UU/UU_subset.py
         ▼                                               ▼
 interim/<label>_SUB_*.parquet                   interim/<label>_UU_SUB_*.parquet
-        │ build_train_clean.py                          │ uu_build_train_clean.py
+        │ SWED/SWED_build_train_clean.py                 │ UU/UU_build_train_clean.py
         ▼                                               ▼
 train/<label>_train_clean.parquet               train/<label>_uu_train_clean.parquet
         │                                               │
-        └──────────── check_train_clean.py ─────────────┘
+        └──────── SWED/SWED_check_train_clean.py ────────┘
         │
-        └─ synthetic_info.py → interim/<label>_synthetic_info.json
+        └─ SWED/SWED_synthetic_info.py → interim/<label>_synthetic_info.json
 ```
 
 | Script | Reads | Writes | What it does |
 |---|---|---|---|
-| `common.py` | – | – | Shared paths, the SNOMED vital list, the UU measurement map, safety guard |
-| `subset.py` | `raw/swed_data/` | `interim/<label>_SUB_*`, `<label>_sample_lopnr.csv` | Samples N SWED patients, copies all their rows from every table, adds `vitals_snomed` |
-| `build_train_clean.py` | SWED subsets | `train/<label>_train_clean.parquet` | Joins vitals, diagnosis, death; builds complaint rows and target classes |
-| `uu_subset.py` | `raw/uu_data/` | `interim/<label>_UU_SUB_*`, `<label>_uu_sample_personid.csv` | Samples N UU patients; maps complaints and vitals to SNOMED |
-| `uu_build_train_clean.py` | UU subsets (+ SWED code list) | `train/<label>_uu_train_clean.parquet` | Same as the SWED build, using the same shared functions |
-| `check_train_clean.py` | a `train_clean` | screen | Checks the design rules hold (section 11) |
-| `synthetic_info.py` | SWED `train_clean` | `interim/<label>_synthetic_info.json` | Privacy-guarded summary statistics, for building synthetic data |
-| `batch/*.sbatch` | – | Slurm logs | Run the scripts as Bianca jobs (section 12) |
-| `batch/uu_profile.sbatch` | `raw/uu_data/` | log only | One-off, privacy-safe description of the UU tables |
+| `common.py` | – | – | Shared paths, the SNOMED vital list, the UU measurement map, safety guard (lives in the pipeline root, imported by both) |
+| `SWED/SWED_subset.py` | `raw/swed_data/` | `interim/<label>_SUB_*`, `<label>_sample_lopnr.csv` | Samples N SWED patients, copies all their rows from every table, adds `vitals_snomed` |
+| `SWED/SWED_build_train_clean.py` | SWED subsets | `train/<label>_train_clean.parquet` | Joins vitals, diagnosis, death; builds complaint rows and target classes |
+| `UU/UU_subset.py` | `raw/uu_data/` | `interim/<label>_UU_SUB_*`, `<label>_uu_sample_personid.csv` | Samples N UU patients; maps complaints and vitals to SNOMED |
+| `UU/UU_build_train_clean.py` | UU subsets (+ SWED code list) | `train/<label>_uu_train_clean.parquet` | Same as the SWED build, using the same shared functions |
+| `SWED/SWED_check_train_clean.py` | a `train_clean` | screen | Checks the design rules hold (section 11) |
+| `SWED/SWED_synthetic_info.py` | SWED `train_clean` | `interim/<label>_synthetic_info.json` | Privacy-guarded summary statistics, for building synthetic data |
+| `SWED/batch/*.sbatch`, `UU/batch/*.sbatch` | – | Slurm logs | Run the scripts as Bianca jobs (section 12) |
+| `UU/batch/UU_profile.sbatch` | `raw/uu_data/` | log only | One-off, privacy-safe description of the UU tables |
 
 ---
 
@@ -353,7 +355,7 @@ One row per (visit, complaint). Most visits have one row; two-complaint visits h
 
 ---
 
-## 11. Checks (`check_train_clean.py`)
+## 11. Checks (`SWED/SWED_check_train_clean.py`)
 
 | Check | Meaning |
 |---|---|
@@ -370,33 +372,33 @@ It also prints the share of visits with each vital sign.
 
 ## 12. How to run (on Bianca)
 
-Submit every job from the pipeline folder: `cd ~/Desktop/pda/src/core/data_pipeline`
+Submit each job from its own pipeline folder — SWED jobs from `.../data_pipeline/SWED`, UU jobs from `.../data_pipeline/UU`:
 
-| Goal | Command |
+| Goal | Command (from) |
 |---|---|
-| SWED subset, 100,000 patients | `sbatch batch/subset.sbatch --n 100000` |
-| SWED train_clean + checks | `sbatch batch/build_train_clean.sbatch 100K` (after the subset finished) |
-| UU subset + train_clean + checks | `sbatch batch/uu_pipeline.sbatch 100000` |
-| Redo some SWED tables | `sbatch batch/subset.sbatch --n 100000 --overwrite --tables ehr_karolinska_meas` |
+| SWED subset, 100,000 patients | `cd .../data_pipeline/SWED && sbatch batch/SWED_subset.sbatch --n 100000` |
+| SWED train_clean + checks | `cd .../data_pipeline/SWED && sbatch batch/SWED_build_train_clean.sbatch 100K` (after the subset finished) |
+| UU subset + train_clean + checks | `cd .../data_pipeline/UU && sbatch batch/UU_pipeline.sbatch 100000` |
+| Redo some SWED tables | `cd .../data_pipeline/SWED && sbatch batch/SWED_subset.sbatch --n 100000 --overwrite --tables ehr_karolinska_meas` |
 | Watch the queue | `watch -n 5 squeue -u theon` |
 | Follow a log | `tail -f <jobname>_<jobid>.log` |
 
-- `subset.sbatch` passes everything after the file name to `subset.py`.
+- `SWED_subset.sbatch` passes everything after the file name to `SWED_subset.py`.
 - The build job takes the **label** (`100K`), the UU job takes the **patient count** (`100000`).
-- Scripts can also be run directly: `python3 subset.py --n 1000`, `python3 build_train_clean.py --label 1K`.
+- Scripts can also be run directly from their folder: `cd SWED && python3 SWED_subset.py --n 1000`, `python3 SWED_build_train_clean.py --label 1K`. Each script puts the pipeline root (and `SWED/`) on `sys.path`, so `import common` and the shared SWED functions resolve.
 
 ### Main options
 
 | Script | Option | Default | Meaning |
 |---|---|---|---|
-| `subset.py` / `uu_subset.py` | `--n` | 500,000 / 100,000 | Number of patients |
+| `SWED_subset.py` / `UU_subset.py` | `--n` | 500,000 / 100,000 | Number of patients |
 | | `--seed` | 20261026 | Random seed |
 | | `--overwrite` | off | Redo finished files (the patient sample is still reused) |
-| `subset.py` | `--tables` | all raw tables | Only these tables |
+| `SWED_subset.py` | `--tables` | all raw tables | Only these tables |
 | builds | `--label` | 500K / 100K | Which subset to use |
 | | `--hdia-min-count` | 30 | Minimum count for a diagnosis code to get its own class |
 | | `--complaint-min-count` | 30 | Minimum count for a complaint code to get its own column |
-| `synthetic_info.py` | `--min-count`, `--round-to` | 10, 5 | Privacy guards (section 14) |
+| `SWED_synthetic_info.py` | `--min-count`, `--round-to` | 10, 5 | Privacy guards (section 14) |
 
 ---
 
@@ -420,8 +422,8 @@ Submit every job from the pipeline folder: `cd ~/Desktop/pda/src/core/data_pipel
 |---|---|
 | Patient-level data stays on Bianca | Subsets and `train_clean` files are never exported |
 | Export only through the wharf | And only data with no patient-level content |
-| `synthetic_info.py` guards | Categories with < 10 rows merged into OTHER; counts rounded to 5; percentiles only, no min/max; no cross-tables |
-| `uu_profile.sbatch` guards | ID columns never printed; values shown only if ≥ 10 rows share them; long values, 6+ digit numbers, name-like values and free-text/staff columns never printed; formats shown as shapes (`I219` → `A999`) |
+| `SWED_synthetic_info.py` guards | Categories with < 10 rows merged into OTHER; counts rounded to 5; percentiles only, no min/max; no cross-tables |
+| `UU_profile.sbatch` guards | ID columns never printed; values shown only if ≥ 10 rows share them; long values, 6+ digit numbers, name-like values and free-text/staff columns never printed; formats shown as shapes (`I219` → `A999`) |
 | Always read a log before exporting it | The guards catch known patterns, not everything |
 
 ---
